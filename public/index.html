@@ -3,6 +3,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Devesh Chat</title>
 
 <style>
@@ -89,6 +90,59 @@ button{
     padding:10px 20px;
     margin-left:5px;
     cursor:pointer;
+}
+input{
+    flex:1;
+    padding:12px;
+    border:none;
+    outline:none;
+    border-radius:10px;
+    font-size:16px;
+}
+
+button{
+    padding:12px 20px;
+    margin-left:5px;
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    background:#00a884;
+    color:white;
+    font-weight:bold;
+}
+
+@media (max-width: 600px){
+
+    h2{
+        font-size:20px;
+        padding:12px;
+    }
+
+    #users{
+        font-size:14px;
+    }
+
+    #chat{
+        height:68vh;
+        padding:10px;
+    }
+
+    .message{
+        max-width:85%;
+        font-size:15px;
+    }
+
+    #bottom{
+        padding:8px;
+    }
+
+    input{
+        font-size:16px;
+    }
+
+    button{
+        padding:12px 15px;
+    }
 }
 </style>
 
