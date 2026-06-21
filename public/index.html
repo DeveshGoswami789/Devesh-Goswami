@@ -152,6 +152,10 @@ button{
 
 <h2>💬 Devesh Chat</h2>
 
+<div style="text-align:center;padding:8px;background:#181818;">
+    <button onclick="logout()">Logout</button>
+</div>
+
 <div id="users">Online Users: 0</div>
 
 <div id="chat"></div>
@@ -166,10 +170,27 @@ button{
 <script>
 const socket = io();
 
-const username =
-prompt("Enter your username") || "Anonymous";
+let username = localStorage.getItem("username");
+
+if(!username){
+
+    username =
+    prompt("Choose a username") || "Anonymous";
+
+    localStorage.setItem(
+        "username",
+        username
+    );
+}
 
 socket.emit("new user", username);
+
+function logout(){
+
+    localStorage.removeItem("username");
+
+    location.reload();
+}
 
 function sendMessage() {
 
