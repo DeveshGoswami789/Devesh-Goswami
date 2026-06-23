@@ -178,6 +178,16 @@ font-style:italic;
 height:20px;
 ">
 </div>
+<div id="replyBox"
+style="
+display:none;
+padding:8px 15px;
+background:#222;
+border-left:4px solid #00a884;
+">
+    <div id="replyText"></div>
+    <button onclick="cancelReply()">✖</button>
+</div>
 
 <div id="bottom">
     <input id="messageInput" placeholder="Type a message...">
@@ -188,6 +198,7 @@ height:20px;
 
 <script>
 const socket = io();
+let replyTo = null;
 
 let username = localStorage.getItem("username");
 
@@ -210,6 +221,30 @@ function logout(){
 
     location.reload();
 }
+function setReply(text){
+
+    replyTo = text;
+
+    document.getElementById(
+        "replyText"
+    ).textContent =
+    "Replying to: " + text;
+
+    document.getElementById(
+        "replyBox"
+    ).style.display =
+    "block";
+}
+
+function cancelReply(){
+
+    replyTo = null;
+
+    document.getElementById(
+        "replyBox"
+    ).style.display =
+    "none";
+}
 
 function sendMessage() {
 
@@ -219,10 +254,12 @@ function sendMessage() {
     if(input.value.trim() !== "") {
 
         socket.emit("chat message", {
-            user: username,
-            text: input.value,
-            time: Date.now()
-        });
+    user: username,
+    text: input.value,
+    time: Date.now(),
+    reply: replyTo
+});
+cancelReply();
 
         input.value = "";
     }
@@ -249,6 +286,34 @@ socket.on("chat message", data => {
 
     const div =
     document.createElement("div");
+let startX = 0;
+
+div.addEventListener(
+    "touchstart",
+    e => {
+
+        startX =
+        e.changedTouches[0].clientX;
+    }
+);
+
+div.addEventListener(
+    "touchend",
+    e => {
+
+        let endX =
+        e.changedTouches[0].clientX;
+
+        if(endX - startX > 80){
+
+            setReply(
+                data.user +
+                ": " +
+                data.text
+            );
+        }
+    }
+);
 
     div.className =
         "message " +
@@ -266,10 +331,23 @@ socket.on("chat message", data => {
         : "";
 
     div.innerHTML = `
-        <div class="name">${data.user}</div>
-        <div>${data.text}</div>
-        <div class="time">${time}</div>
-    `;
+
+    ${data.reply ? `
+    <div style="
+        font-size:12px;
+        color:#8cff8c;
+        border-left:3px solid #8cff8c;
+        padding-left:5px;
+        margin-bottom:5px;
+    ">
+        ${data.reply}
+    </div>
+    ` : ""}
+
+    <div class="name">${data.user}</div>
+    <div>${data.text}</div>
+    <div class="time">${time}</div>
+`;
 
     document
     .getElementById("chat")
