@@ -314,6 +314,17 @@ div.addEventListener(
         }
     }
 );
+div.addEventListener(
+    "dblclick",
+    () => {
+
+        setReply(
+            data.user +
+            ": " +
+            data.text
+        );
+    }
+);
 
     div.className =
         "message " +
