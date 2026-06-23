@@ -147,6 +147,41 @@ button{
         padding:12px 15px;
     }
 }
+#menuContainer{
+    position:absolute;
+    top:15px;
+    right:15px;
+}
+
+#menuBtn{
+    background:none;
+    color:white;
+    font-size:28px;
+    padding:5px 10px;
+}
+
+#menu{
+    display:none;
+    position:absolute;
+    right:0;
+    top:45px;
+    background:#222;
+    border-radius:10px;
+    overflow:hidden;
+    min-width:140px;
+}
+
+#menu button{
+    width:100%;
+    margin:0;
+    border-radius:0;
+    text-align:left;
+    background:#222;
+}
+
+#menu button:hover{
+    background:#333;
+}
 </style>
 
 </head>
@@ -158,9 +193,25 @@ button{
          style="height:55px;vertical-align:middle;margin-right:10px;">
     Devesh Chat
 </h2>
+<div id="menuContainer">
 
-<div style="text-align:center;padding:8px;background:#181818;">
-    <button onclick="logout()">Logout</button>
+    <button id="menuBtn"
+    onclick="toggleMenu()">
+        ⋮
+    </button>
+
+    <div id="menu">
+
+        <button onclick="toggleTheme()">
+            🌙 Theme
+        </button>
+
+        <button onclick="logout()">
+            🚪 Logout
+        </button>
+
+    </div>
+
 </div>
 
 <div id="users">
@@ -199,6 +250,7 @@ border-left:4px solid #00a884;
 <script>
 const socket = io();
 let replyTo = null;
+let darkMode = true;
 
 let username = localStorage.getItem("username");
 
@@ -214,7 +266,82 @@ if(!username){
 }
 
 socket.emit("new user", username);
+function toggleMenu(){
 
+    const menu =
+    document.getElementById(
+        "menu"
+    );
+
+    menu.style.display =
+    menu.style.display === "block"
+    ? "none"
+    : "block";
+}
+
+function toggleTheme(){
+
+    if(darkMode){
+
+        document.body.style.background =
+        "#ffffff";
+
+        document.body.style.color =
+        "#000000";
+
+        document.querySelector("h2")
+        .style.background =
+        "#e5e5e5";
+
+        document.getElementById("users")
+        .style.background =
+        "#f0f0f0";
+
+        document.getElementById("bottom")
+        .style.background =
+        "#e5e5e5";
+
+        document.getElementById("typing")
+        .style.color =
+        "#555";
+
+        document.getElementById("menu")
+        .style.background =
+        "#f0f0f0";
+
+        darkMode = false;
+
+    }else{
+
+        document.body.style.background =
+        "#111";
+
+        document.body.style.color =
+        "#fff";
+
+        document.querySelector("h2")
+        .style.background =
+        "#202020";
+
+        document.getElementById("users")
+        .style.background =
+        "#181818";
+
+        document.getElementById("bottom")
+        .style.background =
+        "#202020";
+
+        document.getElementById("typing")
+        .style.color =
+        "#aaa";
+
+        document.getElementById("menu")
+        .style.background =
+        "#222";
+
+        darkMode = true;
+    }
+}
 function logout(){
 
     localStorage.removeItem("username");
