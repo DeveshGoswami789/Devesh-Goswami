@@ -9,6 +9,7 @@ const io = new Server(server);
 app.use(express.static("public"));
 
 let users = 0;
+let onlineUsers = [];
 
 io.on("connection", (socket) => {
     users++;
@@ -17,9 +18,14 @@ io.on("connection", (socket) => {
     console.log("User connected");
 
     socket.on("new user", (username) => {
-        socket.username = username;
-        io.emit("system", username + " joined the chat");
-    });
+    socket.username = username;
+
+    onlineUsers.push(username);
+
+    io.emit("online users", onlineUsers);
+
+    io.emit("system", username + " joined the chat");
+});
 
     socket.on("chat message", (data) => {
         io.emit("chat message", data);
@@ -30,8 +36,22 @@ io.on("connection", (socket) => {
         io.emit("users count", users);
 
         if (socket.username) {
-            io.emit("system", socket.username + " left the chat");
-        }
+
+    onlineUsers =
+    onlineUsers.filter(
+        user => user !== socket.username
+    );
+
+    io.emit(
+        "online users",
+        onlineUsers
+    );
+
+    io.emit(
+        "system",
+        socket.username + " left the chat"
+    );
+}
     });
 });
 

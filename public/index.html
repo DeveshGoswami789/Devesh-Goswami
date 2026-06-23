@@ -163,7 +163,10 @@ button{
     <button onclick="logout()">Logout</button>
 </div>
 
-<div id="users">Online Users: 0</div>
+<div id="users">
+    🟢 Online Users
+    <div id="userList"></div>
+</div>
 
 <div id="chat"></div>
 
@@ -273,10 +276,12 @@ socket.on("system", msg => {
     div.scrollIntoView();
 });
 
-socket.on("users count", count => {
-    document.getElementById("users")
-    .textContent =
-    "Online Users: " + count;
+socket.on("online users", users => {
+
+    document.getElementById(
+        "userList"
+    ).innerHTML =
+    users.join("<br>");
 });
 </script>
 
