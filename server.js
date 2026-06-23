@@ -30,6 +30,12 @@ io.on("connection", (socket) => {
     socket.on("chat message", (data) => {
         io.emit("chat message", data);
     });
+socket.on("typing", (username) => {
+    socket.broadcast.emit(
+        "typing",
+        username
+    );
+});
 
     socket.on("disconnect", () => {
         users--;

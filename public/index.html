@@ -169,6 +169,15 @@ button{
 </div>
 
 <div id="chat"></div>
+<div
+id="typing"
+style="
+padding:5px 15px;
+color:#aaa;
+font-style:italic;
+height:20px;
+">
+</div>
 
 <div id="bottom">
     <input id="messageInput" placeholder="Type a message...">
@@ -226,6 +235,15 @@ document
         sendMessage();
     }
 });
+document
+.getElementById("messageInput")
+.addEventListener("input", () => {
+
+    socket.emit(
+        "typing",
+        username
+    );
+});
 
 socket.on("chat message", data => {
 
@@ -282,6 +300,28 @@ socket.on("online users", users => {
         "userList"
     ).innerHTML =
     users.join("<br>");
+});
+socket.on("typing", user => {
+
+    const typing =
+    document.getElementById(
+        "typing"
+    );
+
+    typing.textContent =
+    user + " is typing...";
+
+    clearTimeout(
+        typing.timeout
+    );
+
+    typing.timeout =
+    setTimeout(() => {
+
+        typing.textContent =
+        "";
+
+    }, 1500);
 });
 </script>
 
