@@ -182,6 +182,12 @@ button{
 #menu button:hover{
     background:#333;
 }
+#messageMenu button{
+    width:100%;
+    margin:2px 0;
+    border-radius:6px;
+    text-align:left;
+}
 </style>
 
 </head>
@@ -211,6 +217,27 @@ button{
         </button>
 
     </div>
+
+</div>
+<div id="pinnedMessage"
+style="
+display:none;
+background:#333;
+padding:10px;
+text-align:center;
+border-bottom:2px solid #00a884;
+">
+
+📌 <span id="pinnedText"></span>
+
+<button
+onclick="unpinMessage()"
+style="
+margin-left:10px;
+padding:4px 8px;
+">
+❌
+</button>
 
 </div>
 
@@ -251,6 +278,9 @@ border-left:4px solid #00a884;
 const socket = io();
 let replyTo = null;
 let darkMode = true;
+let selectedMessage = null;
+let selectedDiv = null;
+let pressTimer;
 
 let username = localStorage.getItem("username");
 
@@ -341,6 +371,120 @@ function toggleTheme(){
 
         darkMode = true;
     }
+}
+function showMessageMenu(x,y){
+
+    const menu =
+    document.getElementById(
+        "messageMenu"
+    );
+
+    menu.style.left =
+    x + "px";
+
+    menu.style.top =
+    y + "px";
+
+    menu.style.display =
+    "block";
+}
+
+document.addEventListener(
+    "click",
+    () => {
+
+        document.getElementById(
+            "messageMenu"
+        ).style.display =
+        "none";
+    }
+);
+
+function editMessage(){
+    alert("Edit coming soon");
+}
+
+function copyMessage(){
+
+    navigator.clipboard.writeText(
+        selectedMessage.text
+    );
+}
+
+function pinMessage(){
+
+    document.getElementById(
+        "pinnedText"
+    ).textContent =
+    selectedMessage.text;
+
+    document.getElementById(
+        "pinnedMessage"
+    ).style.display =
+    "block";
+}
+function reactMessage(){
+
+    const picker =
+    document.getElementById(
+        "emojiPicker"
+    );
+
+    picker.style.display =
+    "block";
+
+    picker.style.left =
+    "50%";
+
+    picker.style.top =
+    "50%";
+}
+function addReaction(emoji){
+
+    document.getElementById(
+        "emojiPicker"
+    ).style.display =
+    "none";
+
+    let reactionBox =
+    selectedDiv.querySelector(
+        ".reactions"
+    );
+
+    if(!reactionBox){
+
+        reactionBox =
+        document.createElement(
+            "div"
+        );
+
+        reactionBox.className =
+        "reactions";
+
+        reactionBox.style.marginTop =
+        "5px";
+
+        selectedDiv.appendChild(
+            reactionBox
+        );
+    }
+
+    reactionBox.innerHTML +=
+    `<span style="
+        margin-right:6px;
+        font-size:18px;
+    ">${emoji}</span>`;
+}
+
+function deleteMessage(){
+    alert("Delete coming soon");
+}
+function unpinMessage(){
+
+    document.getElementById(
+        "pinnedMessage"
+    ).style.display =
+    "none";
 }
 function logout(){
 
@@ -442,6 +586,52 @@ div.addEventListener(
     }
 );
 div.addEventListener(
+    "contextmenu",
+    (e) => {
+
+        e.preventDefault();
+
+        selectedMessage = data;
+        selectedDiv = div;
+
+        showMessageMenu(
+            e.pageX,
+            e.pageY
+        );
+    }
+);
+
+div.addEventListener(
+    "touchstart",
+    (e) => {
+
+        pressTimer =
+        setTimeout(() => {
+
+            selectedMessage =
+            data;
+            selectedDiv = div;
+
+            showMessageMenu(
+                e.touches[0].pageX,
+                e.touches[0].pageY
+            );
+
+        }, 500);
+
+    }
+);
+
+div.addEventListener(
+    "touchend",
+    () => {
+
+        clearTimeout(
+            pressTimer
+        );
+    }
+);
+div.addEventListener(
     "dblclick",
     () => {
 
@@ -540,6 +730,40 @@ socket.on("typing", user => {
     }, 1500);
 });
 </script>
+<div id="messageMenu"
+style="
+display:none;
+position:fixed;
+background:#222;
+border-radius:10px;
+padding:5px;
+z-index:9999;
+min-width:180px;
+">
 
+<button onclick="editMessage()">✏️ Edit</button>
+<button onclick="copyMessage()">📋 Copy</button>
+<button onclick="pinMessage()">📌 Pin</button>
+<button onclick="reactMessage()">😂 React</button>
+<button onclick="deleteMessage()">🗑️ Delete</button>
+
+</div>
+<div id="emojiPicker"
+style="
+display:none;
+position:fixed;
+background:#222;
+padding:10px;
+border-radius:10px;
+z-index:9999;
+">
+
+<span onclick="addReaction('👍')">👍</span>
+<span onclick="addReaction('❤️')">❤️</span>
+<span onclick="addReaction('😂')">😂</span>
+<span onclick="addReaction('😮')">😮</span>
+<span onclick="addReaction('😢')">😢</span>
+
+</div>
 </body>
 </html>
