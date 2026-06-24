@@ -800,6 +800,19 @@ socket.on("typing", user => {
 socket.on(
     "delete message",
     (messageId) => {
+
+        const msg =
+        document.querySelector(
+            `[data-id="${messageId}"]`
+        );
+
+        if(msg){
+
+            msg.remove();
+        }
+    }
+);
+
 socket.on(
     "edit message",
     (data) => {
@@ -822,17 +835,13 @@ socket.on(
                 data.text + " (edited)";
             }
         }
-    }
-);
 
-        const msg =
-        document.querySelector(
-            `[data-id="${messageId}"]`
-        );
-
-        if(msg){
-
-            msg.remove();
+        if(
+            selectedMessage &&
+            selectedMessage.id === data.id
+        ){
+            selectedMessage.text =
+            data.text;
         }
     }
 );
