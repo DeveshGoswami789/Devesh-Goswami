@@ -1,17 +1,66 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const multer = require("multer");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static("public"));
+app.use(
+    "/uploads",
+    express.static("uploads")
+);
+
+const storage =
+multer.diskStorage({
+
+    destination:
+    (req,file,cb)=>{
+
+        cb(
+            null,
+            "uploads/"
+        );
+    },
+
+    filename:
+    (req,file,cb)=>{
+
+        cb(
+            null,
+            Date.now() +
+            path.extname(
+                file.originalname
+            )
+        );
+    }
+});
+
+const upload =
+multer({
+    storage
+});
 
 let users = 0;
 let onlineUsers = [];
 let reactions = {};
 let messages = {};
+
+app.post(
+"/upload",
+upload.single("file"),
+(req,res)=>{
+
+    res.json({
+        url:
+        "/uploads/" +
+        req.file.filename
+    });
+
+});
 
 io.on("connection", (socket) => {
     users++;
