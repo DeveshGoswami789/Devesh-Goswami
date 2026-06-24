@@ -494,34 +494,14 @@ function addReaction(emoji){
     ).style.display =
     "none";
 
-    let reactionBox =
-    selectedDiv.querySelector(
-        ".reactions"
+    socket.emit(
+        "reaction",
+        {
+            messageId:
+            selectedMessage.id,
+            emoji
+        }
     );
-
-    if(!reactionBox){
-
-        reactionBox =
-        document.createElement(
-            "div"
-        );
-
-        reactionBox.className =
-        "reactions";
-
-        reactionBox.style.marginTop =
-        "5px";
-
-        selectedDiv.appendChild(
-            reactionBox
-        );
-    }
-
-    reactionBox.innerHTML +=
-    `<span style="
-        margin-right:6px;
-        font-size:18px;
-    ">${emoji}</span>`;
 }
 
 function deleteMessage(){
@@ -732,6 +712,7 @@ div.addEventListener(
     ${data.text}
 </div>
     <div class="time">${time}</div>
+<div class="reactions"></div>
 `;
 
     document
@@ -812,7 +793,49 @@ socket.on(
         }
     }
 );
+socket.on(
+    "reaction update",
+    (data) => {
 
+        const msg =
+        document.querySelector(
+            `[data-id="${data.messageId}"]`
+        );
+
+        if(!msg) return;
+
+        const box =
+        msg.querySelector(
+            ".reactions"
+        );
+
+        if(!box) return;
+
+        box.innerHTML = "";
+
+        for(
+            const emoji
+            in data.reactions
+        ){
+
+            const count =
+            data.reactions[
+                emoji
+            ].length;
+
+            if(count > 0){
+
+                box.innerHTML +=
+                `<span style="
+                    margin-right:8px;
+                    font-size:18px;
+                ">
+                    ${emoji} ${count}
+                </span>`;
+            }
+        }
+    }
+);
 socket.on(
     "edit message",
     (data) => {
