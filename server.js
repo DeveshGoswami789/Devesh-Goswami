@@ -81,6 +81,16 @@ socket.on(
         );
     }
 );
+socket.on(
+    "edit message",
+    (data) => {
+
+        io.emit(
+            "edit message",
+            data
+        );
+    }
+);
 
 socket.on("typing", (username) => {
 
