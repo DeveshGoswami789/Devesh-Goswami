@@ -28,15 +28,31 @@ io.on("connection", (socket) => {
 });
 
     socket.on("chat message", (data) => {
-        io.emit("chat message", data);
-    });
+
+    io.emit(
+        "chat message",
+        data
+    );
+});
+
+socket.on(
+    "delete message",
+    (messageId) => {
+
+        io.emit(
+            "delete message",
+            messageId
+        );
+    }
+);
+
 socket.on("typing", (username) => {
+
     socket.broadcast.emit(
         "typing",
         username
     );
 });
-
     socket.on("disconnect", () => {
         users--;
         io.emit("users count", users);

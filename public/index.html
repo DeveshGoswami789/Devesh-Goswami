@@ -275,7 +275,24 @@ border-left:4px solid #00a884;
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
+
+const msgSound =
+new Audio(
+"https://actions.google.com/sounds/v1/cartoon/pop.ogg"
+);
+
+const joinSound =
+new Audio(
+"https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"
+);
+
+const leaveSound =
+new Audio(
+"https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg"
+);
+
 const socket = io();
+
 let replyTo = null;
 let darkMode = true;
 let selectedMessage = null;
@@ -477,20 +494,11 @@ function addReaction(emoji){
 }
 
 function deleteMessage(){
-    alert("Delete coming soon");
-}
-function unpinMessage(){
 
-    document.getElementById(
-        "pinnedMessage"
-    ).style.display =
-    "none";
-}
-function logout(){
-
-    localStorage.removeItem("username");
-
-    location.reload();
+    socket.emit(
+        "delete message",
+        selectedMessage.id
+    );
 }
 function setReply(text){
 
@@ -525,11 +533,13 @@ function sendMessage() {
     if(input.value.trim() !== "") {
 
         socket.emit("chat message", {
+    id: Date.now() + Math.random(),
     user: username,
     text: input.value,
     time: Date.now(),
     reply: replyTo
 });
+
 cancelReply();
 
         input.value = "";
@@ -555,8 +565,14 @@ document
 
 socket.on("chat message", data => {
 
+if(data.user !== username){
+
+    msgSound.play();
+}
+
     const div =
     document.createElement("div");
+div.dataset.id = data.id;
 let startX = 0;
 
 div.addEventListener(
@@ -691,6 +707,16 @@ socket.on("system", msg => {
 
     div.className = "system";
 
+if(msg.includes("joined")){
+
+    joinSound.play();
+}
+
+if(msg.includes("left")){
+
+    leaveSound.play();
+}
+
     div.textContent = msg;
 
     document
@@ -729,6 +755,23 @@ socket.on("typing", user => {
 
     }, 1500);
 });
+
+socket.on(
+    "delete message",
+    (messageId) => {
+
+        const msg =
+        document.querySelector(
+            `[data-id="${messageId}"]`
+        );
+
+        if(msg){
+
+            msg.remove();
+        }
+    }
+);
+
 </script>
 <div id="messageMenu"
 style="
