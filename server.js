@@ -3,12 +3,16 @@ const http = require("http");
 const { Server } = require("socket.io");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static("public"));
+if (!fs.existsSync("uploads")) {
+    fs.mkdirSync("uploads");
+}
 app.use(
     "/uploads",
     express.static("uploads")
