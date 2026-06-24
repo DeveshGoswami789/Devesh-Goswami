@@ -396,6 +396,20 @@ function showMessageMenu(x,y){
         "messageMenu"
     );
 
+    document.getElementById(
+        "editBtn"
+    ).style.display =
+    selectedMessage.user === username
+    ? "block"
+    : "none";
+
+    document.getElementById(
+        "deleteBtn"
+    ).style.display =
+    selectedMessage.user === username
+    ? "block"
+    : "none";
+
     menu.style.left =
     x + "px";
 
@@ -405,7 +419,6 @@ function showMessageMenu(x,y){
     menu.style.display =
     "block";
 }
-
 document.addEventListener(
     "click",
     () => {
@@ -418,7 +431,25 @@ document.addEventListener(
 );
 
 function editMessage(){
-    alert("Edit coming soon");
+
+    const newText = prompt(
+        "Edit message:",
+        selectedMessage.text
+    );
+
+    if(
+        newText &&
+        newText.trim() !== ""
+    ){
+
+        socket.emit(
+            "edit message",
+            {
+                id: selectedMessage.id,
+                text: newText
+            }
+        );
+    }
 }
 
 function copyMessage(){
@@ -562,6 +593,14 @@ document
         username
     );
 });
+function logout(){
+
+    localStorage.removeItem(
+        "username"
+    );
+
+    location.reload();
+}
 
 socket.on("chat message", data => {
 
@@ -689,7 +728,9 @@ div.addEventListener(
     ` : ""}
 
     <div class="name">${data.user}</div>
-    <div>${data.text}</div>
+    <div class="messageText">
+    ${data.text}
+</div>
     <div class="time">${time}</div>
 `;
 
@@ -784,12 +825,17 @@ z-index:9999;
 min-width:180px;
 ">
 
-<button onclick="editMessage()">✏️ Edit</button>
+<button id="editBtn"
+onclick="editMessage()">
+✏️ Edit
+</button>
 <button onclick="copyMessage()">📋 Copy</button>
 <button onclick="pinMessage()">📌 Pin</button>
 <button onclick="reactMessage()">😂 React</button>
-<button onclick="deleteMessage()">🗑️ Delete</button>
-
+<button id="deleteBtn"
+onclick="deleteMessage()">
+🗑️ Delete
+</button>
 </div>
 <div id="emojiPicker"
 style="

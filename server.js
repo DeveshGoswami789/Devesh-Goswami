@@ -36,6 +36,42 @@ io.on("connection", (socket) => {
 });
 
 socket.on(
+    "edit message",
+    (data) => {
+
+        io.emit(
+            "edit message",
+            data
+        );
+    }
+);
+socket.on(
+    "edit message",
+    (data) => {
+
+        const msg =
+        document.querySelector(
+            `[data-id="${data.id}"]`
+        );
+
+        if(msg){
+
+            const textDiv =
+            msg.querySelector(
+                ".messageText"
+            );
+
+            if(textDiv){
+
+                textDiv.textContent =
+                data.text +
+                " (edited)";
+            }
+        }
+    }
+);
+
+socket.on(
     "delete message",
     (messageId) => {
 
