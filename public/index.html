@@ -410,14 +410,49 @@ function showMessageMenu(x,y){
     ? "block"
     : "none";
 
-    menu.style.left =
-    x + "px";
-
-    menu.style.top =
-    y + "px";
-
     menu.style.display =
-    "block";
+"block";
+
+const menuWidth =
+menu.offsetWidth;
+
+const menuHeight =
+menu.offsetHeight;
+
+let left = x;
+let top = y;
+
+if(
+    left + menuWidth >
+    window.innerWidth
+){
+    left =
+    window.innerWidth -
+    menuWidth - 10;
+}
+
+if(
+    top + menuHeight >
+    window.innerHeight
+){
+    top =
+    window.innerHeight -
+    menuHeight - 10;
+}
+
+if(left < 10){
+    left = 10;
+}
+
+if(top < 10){
+    top = 10;
+}
+
+menu.style.left =
+left + "px";
+
+menu.style.top =
+top + "px";
 }
 document.addEventListener(
     "click",
