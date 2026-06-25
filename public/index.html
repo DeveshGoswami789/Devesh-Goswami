@@ -188,6 +188,38 @@ button{
     border-radius:6px;
     text-align:left;
 }
+.voiceMessage{
+display:flex;
+align-items:center;
+gap:10px;
+background:#1f2c34;
+padding:8px 12px;
+border-radius:18px;
+margin-top:5px;
+width:220px;
+}
+
+.voiceMessage button{
+width:38px;
+height:38px;
+padding:0;
+border-radius:50%;
+font-size:18px;
+flex-shrink:0;
+}
+
+.voiceWave{
+flex:1;
+font-size:16px;
+letter-spacing:2px;
+color:#8cff8c;
+overflow:hidden;
+white-space:nowrap;
+}
+
+.voiceMessage audio{
+display:none;
+}
 </style>
 
 </head>
@@ -1067,15 +1099,39 @@ margin-top:5px;
 ` : ""}
 
 ${data.audio ? `
-<audio controls
-style="
-margin-top:5px;
-width:100%;
+<div class="voiceMessage">
+
+<button
+class="playBtn"
+onclick="
+const audio =
+this.parentElement.querySelector('audio');
+
+if(audio.paused){
+audio.play();
+this.innerHTML='⏸️';
+}else{
+audio.pause();
+this.innerHTML='▶️';
+}
+">
+▶️
+</button>
+
+<div class="voiceWave">
+▁▂▃▄▅▆▇▆▅▄▃▂
+</div>
+
+<audio
+onended="
+this.parentElement.querySelector('.playBtn').innerHTML='▶️'
 ">
 <source
 src="${data.audio}"
 type="audio/webm">
 </audio>
+
+</div>
 ` : ""}
     
     <div class="time">${time}</div>
