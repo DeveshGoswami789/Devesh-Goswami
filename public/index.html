@@ -293,12 +293,6 @@ border-left:4px solid #00a884;
 
     <button onclick="sendMessage()">Send</button>
 </div>
-</button>
-
-<button id="recordBtn">🎤</button>
-
-    <button onclick="sendMessage()">Send</button>
-</div>
 
 <script src="/socket.io/socket.io.js"></script>
 
@@ -705,11 +699,17 @@ document
 .addEventListener(
 "click",
 async ()=>{
+if (!navigator.mediaDevices) {
+    alert("mediaDevices not supported");
+    return;
+}
 
 if(
 !mediaRecorder ||
 mediaRecorder.state === "inactive"
 ){
+
+try {
 
 const stream =
 await navigator
@@ -717,6 +717,20 @@ await navigator
 .getUserMedia({
 audio:true
 });
+
+audioChunks = [];
+
+mediaRecorder =
+new MediaRecorder(
+stream
+);
+
+} catch(err){
+
+alert(err.message);
+return;
+
+}
 
 audioChunks = [];
 
