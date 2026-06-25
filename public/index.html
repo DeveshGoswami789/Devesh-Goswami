@@ -267,6 +267,30 @@ border-left:4px solid #00a884;
     <button onclick="cancelReply()">✖</button>
 </div>
 
+<div id="voicePreview"
+style="
+display:none;
+padding:10px;
+background:#222;
+">
+
+<audio
+id="voicePlayer"
+controls>
+</audio>
+
+<button
+onclick="deleteVoice()">
+🗑️
+</button>
+
+<button
+onclick="sendVoice()">
+📤
+</button>
+
+</div>
+
 <div id="bottom">
     <input id="messageInput" placeholder="Type a message...">
 
@@ -323,6 +347,7 @@ let pressTimer;
 let mediaRecorder;
 let audioChunks = [];
 let stream;
+let recordedBlob = null;
 
 let username = localStorage.getItem("username");
 
@@ -686,6 +711,75 @@ Date.now()
 );
 
 });
+
+function deleteVoice(){
+
+recordedBlob = null;
+
+document
+.getElementById(
+"voicePreview"
+)
+.style.display =
+"none";
+
+document
+.getElementById(
+"voicePlayer"
+)
+.src = "";
+
+}
+
+async function sendVoice(){
+
+if(!recordedBlob)
+return;
+
+const formData =
+new FormData();
+
+formData.append(
+"file",
+recordedBlob,
+"voice.webm"
+);
+
+const res =
+await fetch(
+"/upload",
+{
+method:"POST",
+body:formData
+}
+);
+
+const data =
+await res.json();
+
+socket.emit(
+"chat message",
+{
+id:
+Date.now()
++
+Math.random(),
+
+user:
+username,
+
+audio:
+data.url,
+
+time:
+Date.now()
+}
+);
+
+deleteVoice();
+
+}
+
 function logout(){
 
     localStorage.removeItem(
@@ -763,48 +857,27 @@ type:"audio/webm"
 }
 );
 
-stream.getTracks().forEach(
+recordedBlob =
+audioBlob;
+
+document
+.getElementById(
+"voicePlayer"
+).src =
+URL.createObjectURL(
+audioBlob
+);
+
+document
+.getElementById(
+"voicePreview"
+).style.display =
+"block";
+
+stream
+.getTracks()
+.forEach(
 track => track.stop()
-);
-
-const formData =
-new FormData();
-
-formData.append(
-"file",
-audioBlob,
-"voice.webm"
-);
-
-const res =
-await fetch(
-"/upload",
-{
-method:"POST",
-body:formData
-}
-);
-
-const data =
-await res.json();
-
-socket.emit(
-"chat message",
-{
-id:
-Date.now()
-+
-Math.random(),
-
-user:
-username,
-
-audio:
-data.url,
-
-time:
-Date.now()
-}
 );
 
 };
