@@ -751,6 +751,9 @@ e.data
 mediaRecorder.onstop =
 async ()=>{
 
+console.log("STOPPED");
+console.log(audioChunks);
+
 const audioBlob =
 new Blob(
 audioChunks,
