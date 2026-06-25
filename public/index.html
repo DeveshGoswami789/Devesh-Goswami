@@ -695,6 +695,26 @@ if(data.user !== username){
     const div =
     document.createElement("div");
 div.dataset.id = data.id;
+setTimeout(()=>{
+
+if(
+data.user !== username
+){
+
+socket.emit(
+"message seen",
+{
+messageId:
+data.id,
+
+user:
+username
+}
+);
+
+}
+
+},1000);
 let startX = 0;
 
 div.addEventListener(
@@ -829,6 +849,14 @@ margin-top:5px;
     ${data.text}
 </div>
     <div class="time">${time}</div>
+<div
+class="seenBy"
+style="
+font-size:11px;
+opacity:.7;
+margin-top:3px;
+">
+</div>
 <div class="reactions"></div>
 `;
 
@@ -910,6 +938,32 @@ socket.on(
         }
     }
 );
+
+socket.on(
+"message seen",
+(data)=>{
+
+const msg =
+document.querySelector(
+`[data-id="${data.messageId}"]`
+);
+
+if(!msg) return;
+
+const seenDiv =
+msg.querySelector(
+".seenBy"
+);
+
+if(seenDiv){
+
+seenDiv.textContent =
+"Seen by: " +
+data.users.join(", ");
+}
+
+});
+
 socket.on(
     "reaction update",
     (data) => {

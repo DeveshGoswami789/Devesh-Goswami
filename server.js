@@ -50,6 +50,7 @@ multer({
 
 let users = 0;
 let onlineUsers = [];
+let seenData = {};
 let reactions = {};
 let messages = {};
 
@@ -93,6 +94,40 @@ io.on("connection", (socket) => {
         "chat message",
         data
     );
+});
+
+socket.on(
+"message seen",
+(data)=>{
+
+if(
+!seenData[data.messageId]
+){
+seenData[data.messageId] = [];
+}
+
+if(
+!seenData[data.messageId]
+.includes(data.user)
+){
+
+seenData[data.messageId]
+.push(data.user);
+}
+
+io.emit(
+"message seen",
+{
+messageId:
+data.messageId,
+
+users:
+seenData[
+data.messageId
+]
+}
+);
+
 });
 
 socket.on(
