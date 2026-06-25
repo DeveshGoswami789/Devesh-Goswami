@@ -322,6 +322,7 @@ let selectedDiv = null;
 let pressTimer;
 let mediaRecorder;
 let audioChunks = [];
+let stream;
 
 let username = localStorage.getItem("username");
 
@@ -711,7 +712,7 @@ mediaRecorder.state === "inactive"
 
 try {
 
-const stream =
+stream =
 await navigator
 .mediaDevices
 .getUserMedia({
@@ -760,6 +761,10 @@ audioChunks,
 {
 type:"audio/webm"
 }
+);
+
+stream.getTracks().forEach(
+track => track.stop()
 );
 
 const formData =
