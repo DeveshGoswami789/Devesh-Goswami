@@ -284,6 +284,9 @@ document
 ">
 📷
 </button>
+
+<button id="recordBtn">🎤</button>
+
     <button onclick="sendMessage()">Send</button>
 </div>
 
@@ -313,6 +316,8 @@ let darkMode = true;
 let selectedMessage = null;
 let selectedDiv = null;
 let pressTimer;
+let mediaRecorder;
+let audioChunks = [];
 
 let username = localStorage.getItem("username");
 
@@ -685,6 +690,115 @@ function logout(){
     location.reload();
 }
 
+document
+.getElementById("recordBtn")
+.addEventListener(
+"click",
+async ()=>{
+
+if(
+!mediaRecorder ||
+mediaRecorder.state === "inactive"
+){
+
+const stream =
+await navigator
+.mediaDevices
+.getUserMedia({
+audio:true
+});
+
+audioChunks = [];
+
+mediaRecorder =
+new MediaRecorder(
+stream
+);
+
+mediaRecorder.ondataavailable =
+e => {
+
+audioChunks.push(
+e.data
+);
+
+};
+
+mediaRecorder.onstop =
+async ()=>{
+
+const audioBlob =
+new Blob(
+audioChunks,
+{
+type:"audio/webm"
+}
+);
+
+const formData =
+new FormData();
+
+formData.append(
+"file",
+audioBlob,
+"voice.webm"
+);
+
+const res =
+await fetch(
+"/upload",
+{
+method:"POST",
+body:formData
+}
+);
+
+const data =
+await res.json();
+
+socket.emit(
+"chat message",
+{
+id:
+Date.now()
++
+Math.random(),
+
+user:
+username,
+
+audio:
+data.url,
+
+time:
+Date.now()
+}
+);
+
+};
+
+mediaRecorder.start();
+
+document
+.getElementById(
+"recordBtn"
+).textContent =
+"⏹️";
+
+}else{
+
+mediaRecorder.stop();
+
+document
+.getElementById(
+"recordBtn"
+).textContent =
+"🎤";
+
+}
+
+});
+
 socket.on("chat message", data => {
 
 if(data.user !== username){
@@ -845,6 +959,18 @@ max-width:250px;
 border-radius:10px;
 margin-top:5px;
 ">
+` : ""}
+
+${data.audio ? `
+<audio controls
+style="
+margin-top:5px;
+width:100%;
+">
+<source
+src="${data.audio}"
+type="audio/webm">
+</audio>
 ` : ""}
     
     <div class="time">${time}</div>
