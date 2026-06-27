@@ -4,10 +4,13 @@ const { Server } = require("socket.io");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const db = require("./db");
+
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
 
 app.use(express.static("public"));
 if (!fs.existsSync("uploads")) {
@@ -54,6 +57,7 @@ let seenData = {};
 let reactions = {};
 let messages = {};
 
+
 app.post(
 "/upload",
 upload.single("file"),
@@ -72,6 +76,19 @@ io.on("connection", (socket) => {
     io.emit("users count", users);
 
     console.log("User connected");
+db.all(
+    "SELECT * FROM messages ORDER BY time ASC",
+    [],
+    (err, rows) => {
+
+        if (err) {
+            console.log(err);
+            return;
+        }
+
+        socket.emit("chat history", rows);
+    }
+);
 
     socket.on("new user", (username) => {
     socket.username = username;
@@ -83,12 +100,27 @@ io.on("connection", (socket) => {
     io.emit("system", username + " joined the chat");
 });
 
-    socket.on("chat message", (data) => {
+    socket.on("chat message", async (data) => {
 
     messages[data.id] = {
         user: socket.username,
         text: data.text
     };
+
+    db.run(
+    `INSERT INTO messages
+    (id,user,text,image,audio,time,reply)
+    VALUES (?,?,?,?,?,?,?)`,
+    [
+        data.id,
+        data.user,
+        data.text || null,
+        data.image || null,
+        data.audio || null,
+        data.time,
+        data.reply || null
+    ]
+);
 
     io.emit(
         "chat message",

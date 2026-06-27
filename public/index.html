@@ -1326,6 +1326,91 @@ socket.on(
     }
 );
 
+socket.on("chat history", (messages) => {
+
+    const chat =
+    document.getElementById("chat");
+
+    chat.innerHTML = "";
+
+    messages.forEach((data) => {
+
+        const div =
+        document.createElement("div");
+
+        div.dataset.id = data.id;
+
+        div.className =
+        "message " +
+        (data.user === username
+        ? "mine"
+        : "other");
+
+        const time =
+        new Date(data.time)
+        .toLocaleTimeString(
+            [],
+            {
+                hour:"2-digit",
+                minute:"2-digit"
+            }
+        );
+
+        div.innerHTML = `
+
+        ${data.reply ? `
+        <div style="
+        font-size:12px;
+        color:#8cff8c;
+        border-left:3px solid #8cff8c;
+        padding-left:5px;
+        margin-bottom:5px;">
+        ${data.reply}
+        </div>
+        ` : ""}
+
+        <div class="name">${data.user}</div>
+
+        ${data.text ? `
+        <div class="messageText">
+        ${data.text}
+        </div>` : ""}
+
+        ${data.image ? `
+        <img src="${data.image}"
+        style="
+        max-width:250px;
+        border-radius:10px;
+        margin-top:5px;">
+        ` : ""}
+
+        ${data.audio ? `
+        <audio controls
+        style="
+        width:100%;
+        margin-top:5px;">
+        <source
+        src="${data.audio}"
+        type="audio/webm">
+        </audio>
+        ` : ""}
+
+        <div class="time">${time}</div>
+
+        <div class="seenBy"></div>
+
+        <div class="reactions"></div>
+        `;
+
+        chat.appendChild(div);
+
+    });
+
+    chat.scrollTop =
+    chat.scrollHeight;
+
+});
+
 </script>
 <div id="messageMenu"
 style="
