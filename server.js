@@ -33,6 +33,7 @@ let onlineUsers = [];
 let seenData = {};
 let reactions = {};
 let messages = {};
+let pinnedMessage = "";
 
 app.post("/upload", upload.single("file"), (req, res) => {
     res.json({
@@ -56,6 +57,14 @@ io.on("connection", (socket) => {
         io.emit("online users", onlineUsers);
 
         io.emit("system", username + " joined the chat");
+if(pinnedMessage){
+
+    socket.emit(
+        "pin message",
+        pinnedMessage
+    );
+
+}
     });
 
     socket.on("chat message", (data) => {
@@ -147,6 +156,32 @@ io.on("connection", (socket) => {
         socket.broadcast.emit("typing", username);
 
     });
+socket.on(
+    "pin message",
+    (text) => {
+
+        pinnedMessage = text;
+
+        io.emit(
+            "pin message",
+            text
+        );
+
+    }
+);
+
+socket.on(
+    "unpin message",
+    () => {
+
+        pinnedMessage = "";
+
+        io.emit(
+            "unpin message"
+        );
+
+    }
+);
 
     socket.on("disconnect", () => {
 

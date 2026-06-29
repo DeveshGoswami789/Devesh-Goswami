@@ -578,15 +578,18 @@ function copyMessage(){
 
 function pinMessage(){
 
-    document.getElementById(
-        "pinnedText"
-    ).textContent =
-    selectedMessage.text;
+    socket.emit(
+        "pin message",
+        selectedMessage.text
+    );
 
-    document.getElementById(
-        "pinnedMessage"
-    ).style.display =
-    "block";
+}
+function unpinMessage(){
+
+    socket.emit(
+        "unpin message"
+    );
+
 }
 function reactMessage(){
 
@@ -1323,6 +1326,32 @@ socket.on(
             selectedMessage.text =
             data.text;
         }
+    }
+);
+
+socket.on(
+    "pin message",
+    (text) => {
+
+        document.getElementById(
+            "pinnedText"
+        ).textContent = text;
+
+        document.getElementById(
+            "pinnedMessage"
+        ).style.display = "block";
+
+    }
+);
+
+socket.on(
+    "unpin message",
+    () => {
+
+        document.getElementById(
+            "pinnedMessage"
+        ).style.display = "none";
+
     }
 );
 
