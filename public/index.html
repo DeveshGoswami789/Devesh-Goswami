@@ -13,6 +13,7 @@
             margin: 0;
             display: flex;
             height: 100vh;
+            overflow: hidden;
         }
         
         #sidebar {
@@ -21,6 +22,7 @@
             border-right: 1px solid #2d2d2d;
             display: flex;
             flex-direction: column;
+            transition: transform 0.3s ease;
         }
         
         .app-branding-header {
@@ -52,12 +54,29 @@
             position: relative;
         }
         
-        #chatHeader {
-            text-align: center;
+        /* Mobile Dynamic Header with Back Button */
+        .chat-top-bar {
+            display: flex;
+            align-items: center;
             background: #202020;
+            padding: 10px 15px;
+            border-bottom: 1px solid #2d2d2d;
+        }
+        #backBtn {
+            display: none;
+            background: none;
+            border: none;
+            color: #00a884;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 0;
+            margin-right: 15px;
+        }
+        #chatHeader {
             margin: 0;
-            padding: 15px;
             font-size: 18px;
+            flex: 1;
+            text-align: left;
         }
         
         .list-section-title {
@@ -115,14 +134,32 @@
         input { flex: 1; padding: 12px; border: none; outline: none; border-radius: 10px; font-size: 16px; background: #2a2a2a; color: white;}
         button { padding: 12px 20px; margin-left: 5px; cursor: pointer; border: none; border-radius: 10px; background: #00a884; color: white; font-weight: bold; }
 
+        /* Modern WhatsApp/Instagram Mobile UI Engine */
         @media (max-width: 768px) {
-            body { flex-direction: column; }
-            #sidebar { width: 100%; height: 35vh; border-right: none; border-bottom: 1px solid #2d2d2d; }
-            #mainChat { height: 65vh; }
+            body { position: relative; }
+            #sidebar {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                z-index: 20;
+                transform: translateX(0);
+            }
+            #mainChat {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                z-index: 10;
+            }
+            #backBtn { display: block; } /* Show back button on mobiles */
             .message { max-width: 85%; }
+            
+            /* Class to slide screen views */
+            body.chat-open #sidebar {
+                transform: translateX(-100%);
+            }
         }
 
-        #menuContainer { position: absolute; top: 15px; right: 15px; z-index: 10; }
+        #menuContainer { position: absolute; top: 12px; right: 15px; z-index: 25; }
         #menuBtn { background: none; color: white; font-size: 24px; padding: 5px; cursor: pointer; border: none;}
         #menu { display: none; position: absolute; right: 0; top: 45px; background: #222; border-radius: 10px; overflow: hidden; min-width: 140px; }
         #menu button { width: 100%; margin: 0; border-radius: 0; text-align: left; background: #222; }
@@ -152,7 +189,10 @@
 </div>
 
 <div id="mainChat">
-    <h2 id="chatHeader">🌍 Global Public Chat</h2>
+    <div class="chat-top-bar">
+        <button id="backBtn" onclick="backToContactList()">⬅️</button>
+        <h2 id="chatHeader">🌍 Global Public Chat</h2>
+    </div>
 
     <div id="menuContainer">
         <button id="menuBtn" onclick="toggleMenu()">⋮</button>
@@ -249,7 +289,15 @@ function changeChatTarget(target) {
         document.getElementById('chatHeader').textContent = `🔒 Chat with ${target}`;
     }
 
+    // Trigger mobile navigation shift
+    document.body.classList.add("chat-open");
+
     socket.emit("switch room", target);
+}
+
+// Function to handle Mobile Back Button click
+function backToContactList() {
+    document.body.classList.remove("chat-open");
 }
 
 socket.on("update user lists", (data) => {
@@ -332,17 +380,17 @@ function editMessage(){
     if(newText && newText.trim() !== ""){
         socket.emit("edit message", { id: selectedMessage.id, text: newText });
     }
-    closeAllMenus(); // Auto remove menu after click
+    closeAllMenus();
 }
 
 function copyMessage(){
     if(selectedMessage && selectedMessage.text) navigator.clipboard.writeText(selectedMessage.text);
-    closeAllMenus(); // Auto remove menu after click
+    closeAllMenus();
 }
 
 function pinMessage(){
     if(selectedMessage && selectedMessage.text) socket.emit("pin message", selectedMessage.text);
-    closeAllMenus(); // Auto remove menu after click
+    closeAllMenus();
 }
 
 function unpinMessage(){ 
@@ -357,17 +405,17 @@ function reactMessage(){
     picker.style.display = "block";
     picker.style.left = menu.style.left;
     picker.style.top = (parseInt(menu.style.top) - 45) + "px";
-    menu.style.display = "none"; // Hide main menu, show emojis
+    menu.style.display = "none";
 }
 
 window.addReaction = function(emoji) {
     socket.emit("reaction", { messageId: selectedMessage.id, emoji });
-    closeAllMenus(); // Auto remove emoji tray after react
+    closeAllMenus();
 }
 
 function deleteMessage(){ 
     socket.emit("delete message", selectedMessage.id); 
-    closeAllMenus(); // Auto remove menu after click
+    closeAllMenus();
 }
 
 function setReply(text){
