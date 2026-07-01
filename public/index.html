@@ -54,7 +54,6 @@
             position: relative;
         }
         
-        /* Mobile Dynamic Header with Back Button */
         .chat-top-bar {
             display: flex;
             align-items: center;
@@ -98,6 +97,14 @@
         .user-item:hover, .user-item.active {
             background: #2b2b2b;
         }
+        
+        /* Status & Badge Container */
+        .status-badge-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
         .status-dot {
             width: 10px;
             height: 10px;
@@ -106,6 +113,19 @@
         }
         .status-dot.online {
             background: #8cff8c;
+        }
+        
+        /* Red Unread Counter Badge */
+        .msg-badge {
+            background: #e53935;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 2px 7px;
+            border-radius: 10px;
+            min-width: 10px;
+            text-align: center;
+            display: inline-block;
         }
 
         #chat {
@@ -134,7 +154,6 @@
         input { flex: 1; padding: 12px; border: none; outline: none; border-radius: 10px; font-size: 16px; background: #2a2a2a; color: white;}
         button { padding: 12px 20px; margin-left: 5px; cursor: pointer; border: none; border-radius: 10px; background: #00a884; color: white; font-weight: bold; }
 
-        /* Modern WhatsApp/Instagram Mobile UI Engine */
         @media (max-width: 768px) {
             body { position: relative; }
             #sidebar {
@@ -150,10 +169,9 @@
                 width: 100%; height: 100%;
                 z-index: 10;
             }
-            #backBtn { display: block; } /* Show back button on mobiles */
+            #backBtn { display: block; }
             .message { max-width: 85%; }
             
-            /* Class to slide screen views */
             body.chat-open #sidebar {
                 transform: translateX(-100%);
             }
@@ -181,7 +199,10 @@
     <div class="list-section-title">Global Room</div>
     <div class="user-item active" id="globalChatItem" onclick="changeChatTarget('global')">
         <span>🌍 Global Public Chat</span>
-        <div class="status-dot online"></div>
+        <div class="status-badge-container">
+            <div class="status-dot online"></div>
+            <div id="badge-global" class="msg-badge" style="display: none;">0</div>
+        </div>
     </div>
     
     <div class="list-section-title">All Visited Users (DMs)</div>
@@ -266,6 +287,10 @@ let audioChunks = [];
 let stream;
 let recordedBlob = null;
 
+// Object to store unread counts local-state
+let unreadCounts = {}; 
+let onlineUsersCache = [];
+
 let username = localStorage.getItem("username");
 if(!username){
     username = prompt("Choose a username") || "Anonymous";
@@ -274,10 +299,27 @@ if(!username){
 
 socket.emit("new user", username);
 
+function updateBadgeDOM(target) {
+    const badge = document.getElementById(`badge-${target}`);
+    if (!badge) return;
+    
+    const count = unreadCounts[target] || 0;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = "inline-block";
+    } else {
+        badge.style.display = "none";
+    }
+}
+
 function changeChatTarget(target) {
     currentChatTarget = target;
     cancelReply();
     closeAllMenus();
+    
+    // Reset unread count for this selected target room
+    unreadCounts[target] = 0;
+    updateBadgeDOM(target);
     
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
     if(target === 'global') {
@@ -289,18 +331,16 @@ function changeChatTarget(target) {
         document.getElementById('chatHeader').textContent = `🔒 Chat with ${target}`;
     }
 
-    // Trigger mobile navigation shift
     document.body.classList.add("chat-open");
-
     socket.emit("switch room", target);
 }
 
-// Function to handle Mobile Back Button click
 function backToContactList() {
     document.body.classList.remove("chat-open");
 }
 
 socket.on("update user lists", (data) => {
+    onlineUsersCache = data.online; // caching to refresh online indicators correctly
     const container = document.getElementById("usersListContainer");
     container.innerHTML = "";
 
@@ -313,9 +353,14 @@ socket.on("update user lists", (data) => {
         userDiv.id = `user-${user}`;
         userDiv.onclick = () => changeChatTarget(user);
 
+        const badgeCount = unreadCounts[user] || 0;
+
         userDiv.innerHTML = `
             <span>👤 ${user}</span>
-            <div class="status-dot ${isOnline ? 'online' : ''}"></div>
+            <div class="status-badge-container">
+                <div class="status-dot ${isOnline ? 'online' : ''}"></div>
+                <div id="badge-${user}" class="msg-badge" style="display: ${badgeCount > 0 ? 'inline-block' : 'none'};">${badgeCount}</div>
+            </div>
         `;
         container.appendChild(userDiv);
     });
@@ -576,6 +621,20 @@ function setupMessageEvents(div, data) {
 }
 
 socket.on("chat message", data => {
+    // Determine the source origin of message to assign badge correctly
+    const msgOriginRoom = data.room || "global";
+    
+    // If message is not from current active window view, trigger badge calculation
+    if (msgOriginRoom !== currentChatTarget) {
+        if (data.user !== username) {
+            unreadCounts[msgOriginRoom] = (unreadCounts[msgOriginRoom] || 0) + 1;
+            updateBadgeDOM(msgOriginRoom);
+            msgSound.play();
+        }
+        return; // Don't inject div directly if we are not currently viewing that chat box
+    }
+
+    // Traditional message append flow for the currently open active chat window
     if(data.user !== username){ msgSound.play(); }
     const div = document.createElement("div");
     div.dataset.id = data.id;
