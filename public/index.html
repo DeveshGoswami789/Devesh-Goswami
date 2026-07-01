@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/png" href="favicon.png">
     <title>Devesh Chat Pro</title>
     <style>
-        /* CSS Variables for Clean Full-Screen Theme Toggle */
+        /* CSS Variables for Full-Screen Dark/Light Theme Switching */
         :root {
             --bg-body: #111b21;
             --bg-sidebar: #111b21;
@@ -35,28 +35,32 @@
             --msg-other: #ffffff;
         }
 
-        * { box-sizing: border-box; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: var(--bg-body);
             color: var(--text-main);
-            margin: 0;
             display: flex;
             height: 100vh;
+            width: 100vw;
             overflow: hidden;
             transition: background 0.3s, color 0.3s;
         }
         
+        /* Sidebar Layout */
         #sidebar {
             width: 340px;
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease, background 0.3s;
-            z-index: 10;
             flex-shrink: 0;
+            transition: background 0.3s;
         }
         
         .app-branding-header {
@@ -66,6 +70,7 @@
             background: var(--bg-header);
             padding: 16px;
             border-bottom: 1px solid var(--border-color);
+            height: 62px;
         }
         .app-branding-header img {
             width: 34px;
@@ -74,18 +79,18 @@
             object-fit: cover;
         }
         .app-branding-header h2 {
-            margin: 0;
             font-size: 18px;
-            flex: 1;
+            font-weight: 600;
         }
 
+        /* Main Chat Window Layout */
         #mainChat {
             flex: 1;
             display: flex;
             flex-direction: column;
             background: var(--bg-chat);
             position: relative;
-            transition: transform 0.3s ease, background 0.3s;
+            transition: background 0.3s;
         }
         
         .chat-top-bar {
@@ -95,19 +100,18 @@
             padding: 12px 16px;
             border-bottom: 1px solid var(--border-color);
             height: 62px;
+            position: relative;
         }
         #backBtn {
             display: none;
             background: none;
             border: none;
             color: #00a884;
-            font-size: 20px;
+            font-size: 22px;
             cursor: pointer;
-            padding: 0;
             margin-right: 12px;
         }
         #chatHeader {
-            margin: 0;
             font-size: 16px;
             font-weight: 600;
             flex: 1;
@@ -122,14 +126,16 @@
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
+        
         .user-item {
-            padding: 12px 16px;
+            padding: 14px 16px;
             border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: space-between;
             transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
         }
         .user-item:hover, .user-item.active {
             background: var(--bg-item-hover);
@@ -156,11 +162,11 @@
         }
         
         .msg-badge {
-            background: #f44336;
+            background: #00a884;
             color: white;
             font-size: 11px;
             font-weight: bold;
-            padding: 2px 6px;
+            padding: 2px 7px;
             border-radius: 12px;
             min-width: 18px;
             text-align: center;
@@ -207,7 +213,7 @@
         }
         #bottom input { 
             flex: 1; 
-            padding: 10px 14px; 
+            padding: 11px 14px; 
             border: none; 
             outline: none; 
             border-radius: 8px; 
@@ -216,7 +222,7 @@
             color: var(--text-main);
         }
         #bottom button { 
-            padding: 10px 16px; 
+            padding: 11px 16px; 
             cursor: pointer; 
             border: none; 
             border-radius: 8px; 
@@ -225,31 +231,36 @@
             font-weight: bold; 
         }
 
-        /* Responsive Flow View Core Switch Setup */
+        /* 📱 EXTREMELY STABLE MOBILE VIEW RULES */
         @media (max-width: 768px) {
-            body { position: relative; }
             #sidebar {
                 width: 100%;
+                display: flex;
             }
             #mainChat {
-                position: absolute;
-                top: 0; left: 0;
-                width: 100%; height: 100%;
-                transform: translateX(100%);
-                z-index: 20;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 99;
+                display: none; /* Initially Hidden on Mobile */
             }
-            #backBtn { display: block; }
-            .message { max-width: 85%; }
-            
             body.chat-open #mainChat {
-                transform: translateX(0);
+                display: flex; /* Display full block when active */
+            }
+            #backBtn { 
+                display: block; 
+            }
+            .message { 
+                max-width: 85%; 
             }
         }
 
-        #menuContainer { position: absolute; top: 14px; right: 16px; z-index: 25; }
+        #menuContainer { position: absolute; top: 14px; right: 16px; z-index: 105; }
         #menuBtn { background: none; color: var(--text-sub); font-size: 22px; padding: 4px; cursor: pointer; border: none;}
-        #menu { display: none; position: absolute; right: 0; top: 40px; background: var(--bg-header); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; min-width: 140px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        #menu button { width: 100%; margin: 0; border-radius: 0; text-align: left; background: transparent; color: var(--text-main); padding: 10px 16px;}
+        #menu { display: none; position: absolute; right: 0; top: 40px; background: var(--bg-header); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; min-width: 140px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        #menu button { width: 100%; margin: 0; border-radius: 0; text-align: left; background: transparent; color: var(--text-main); padding: 10px 16px; border: none; cursor: pointer;}
         #menu button:hover { background: var(--bg-item-hover); }
         
         .voiceMessage { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.1); padding: 8px 12px; border-radius: 8px; margin-top: 5px; width: 220px; }
@@ -282,13 +293,13 @@
     <div class="chat-top-bar">
         <button id="backBtn" onclick="backToContactList()">⬅️</button>
         <h2 id="chatHeader">🌍 Global Public Chat</h2>
-    </div>
-
-    <div id="menuContainer">
-        <button id="menuBtn" onclick="toggleMenu()">⋮</button>
-        <div id="menu">
-            <button onclick="toggleTheme()">🌓 Theme Mode</button>
-            <button onclick="logout()">🚪 Logout</button>
+        
+        <div id="menuContainer">
+            <button id="menuBtn" onclick="toggleMenu()">⋮</button>
+            <div id="menu">
+                <button onclick="toggleTheme()">🌓 Theme Mode</button>
+                <button onclick="logout()">🚪 Logout</button>
+            </div>
         </div>
     </div>
 
@@ -397,7 +408,7 @@ function changeChatTarget(target) {
         document.getElementById('chatHeader').textContent = `🔒 Chat with ${target}`;
     }
 
-    // CRITICAL FIXED: Active sliding layer class is added directly to body layout container
+    // Direct Body Class Manipulation for Instant Mobile Sliding View Switch
     document.body.classList.add("chat-open");
     document.getElementById("chat").innerHTML = ""; 
     socket.emit("switch room", target);
@@ -417,7 +428,7 @@ socket.on("update user lists", (data) => {
 
         const isOnline = data.online.includes(user);
         const userDiv = document.createElement("div");
-        userDiv.className = `user-item ${currentChatTarget === user ? 'active' : ''}`;
+        userDiv.className = `user-item ${currentChatTarget === user && document.body.classList.contains('chat-open') ? 'active' : ''}`;
         userDiv.id = `user-${user}`;
         userDiv.onclick = () => changeChatTarget(user);
 
@@ -683,6 +694,7 @@ function setupMessageEvents(div, data) {
 socket.on("chat message", data => {
     let msgOriginRoom = data.room || "global";
     
+    // Check dynamic match room context
     if (msgOriginRoom !== "global") {
         if (data.user !== username) {
             msgOriginRoom = data.user;
@@ -691,7 +703,10 @@ socket.on("chat message", data => {
         }
     }
     
-    if (msgOriginRoom !== currentChatTarget) {
+    // Is chat box open on client side?
+    const isChatOpen = document.body.classList.contains("chat-open");
+    
+    if (msgOriginRoom !== currentChatTarget || !isChatOpen) {
         if (data.user !== username) {
             unreadCounts[msgOriginRoom] = (unreadCounts[msgOriginRoom] || 0) + 1;
             updateBadgeDOM(msgOriginRoom);
