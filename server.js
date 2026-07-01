@@ -14,201 +14,186 @@ app.use(express.static("public"));
 if (!fs.existsSync("uploads")) {
     fs.mkdirSync("uploads");
 }
-
 app.use("/uploads", express.static("uploads"));
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "uploads/");
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
+    destination: (req, file, cb) => cb(null, "uploads/"),
+    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
-
 const upload = multer({ storage });
 
-let users = 0;
-let onlineUsers = [];
+// Core Data Structures
+let allVisitedUsers = new Set(); // Jo log kabhi bhi visit kar chuke hain
+let onlineUsers = {}; // { socketId: username }
+let messagesByRoom = { "global": [] }; // Room wise chat history {"global": [...], "user1_user2": [...]}
 let seenData = {};
 let reactions = {};
-let messages = {};
-let pinnedMessage = "";
+let pinnedMessages = {}; // Room wise pin message
 
 app.post("/upload", upload.single("file"), (req, res) => {
-    res.json({
-        url: "/uploads/" + req.file.filename
-    });
+    if (!req.file) return res.status(400).json({ error: "No file" });
+    res.json({ url: "/uploads/" + req.file.filename });
 });
 
 io.on("connection", (socket) => {
-
-    users++;
-    io.emit("users count", users);
-
-    console.log("User connected");
+    console.log("A user connected");
 
     socket.on("new user", (username) => {
-
         socket.username = username;
+        onlineUsers[socket.id] = username;
+        allVisitedUsers.add(username); // Add to permanent list
 
-        onlineUsers.push(username);
+        // Default sabhi ko pehle global room me daalenge
+        socket.join("global");
+        socket.currentRoom = "global";
 
-        io.emit("online users", onlineUsers);
+        // Sabhi ko updated users list bhejna
+        io.emit("update user lists", {
+            online: Object.values(onlineUsers),
+            allVisited: Array.from(allVisitedUsers)
+        });
 
-        io.emit("system", username + " joined the chat");
-if(pinnedMessage){
+        io.to("global").emit("system", `${username} joined the chat`);
+        
+        // Initial history for global
+        socket.emit("chat history", messagesByRoom["global"] || []);
+        if (pinnedMessages["global"]) {
+            socket.emit("pin message", pinnedMessages["global"]);
+        }
+    });
 
-    socket.emit(
-        "pin message",
-        pinnedMessage
-    );
+    // Room Switch Logic (Global <-> Private DM)
+    socket.on("switch room", (targetUser) => {
+        // Purane room ko chodo
+        if (socket.currentRoom) {
+            socket.leave(socket.currentRoom);
+        }
 
-}
+        if (targetUser === "global") {
+            socket.currentRoom = "global";
+        } else {
+            // Private Room ID unique honi chahiye, isliye alphabetical order me sort karenge
+            // Agar Devesh aur Amit chat kar rahe hain toh room hamesha "Amit_Devesh" banega
+            const roomID = [socket.username, targetUser].sort().join("_");
+            socket.currentRoom = roomID;
+        }
+
+        socket.join(socket.currentRoom);
+
+        // Naye room ki history bhejna
+        if (!messagesByRoom[socket.currentRoom]) {
+            messagesByRoom[socket.currentRoom] = [];
+        }
+        socket.emit("chat history", messagesByRoom[socket.currentRoom]);
+        
+        // Pin message handle karna naye room ka
+        if (pinnedMessages[socket.currentRoom]) {
+            socket.emit("pin message", pinnedMessages[socket.currentRoom]);
+        } else {
+            socket.emit("unpin message");
+        }
     });
 
     socket.on("chat message", (data) => {
-
-        messages[data.id] = {
+        const currentRoom = socket.currentRoom || "global";
+        
+        const msgData = {
+            ...data,
             user: socket.username,
-            text: data.text
+            room: currentRoom
         };
 
-        io.emit("chat message", data);
+        if (!messagesByRoom[currentRoom]) {
+            messagesByRoom[currentRoom] = [];
+        }
+        messagesByRoom[currentRoom].push(msgData);
+
+        // Sirf usi room ke logo ko message bhejna
+        io.to(currentRoom).emit("chat message", msgData);
     });
 
     socket.on("message seen", (data) => {
-
-        if (!seenData[data.messageId]) {
-            seenData[data.messageId] = [];
-        }
-
+        if (!seenData[data.messageId]) seenData[data.messageId] = [];
         if (!seenData[data.messageId].includes(data.user)) {
             seenData[data.messageId].push(data.user);
         }
-
-        io.emit("message seen", {
+        io.to(socket.currentRoom).emit("message seen", {
             messageId: data.messageId,
             users: seenData[data.messageId]
         });
-
     });
 
     socket.on("delete message", (messageId) => {
-
-        if (
-            messages[messageId] &&
-            messages[messageId].user === socket.username
-        ) {
-
-            delete messages[messageId];
-
-            io.emit("delete message", messageId);
+        const room = socket.currentRoom;
+        if (messagesByRoom[room]) {
+            messagesByRoom[room] = messagesByRoom[room].filter(m => {
+                if (m.id === messageId && m.user === socket.username) {
+                    return false;
+                }
+                return true;
+            });
+            io.to(room).emit("delete message", messageId);
         }
-
     });
 
     socket.on("reaction", (data) => {
-
         const { messageId, emoji } = data;
+        if (!reactions[messageId]) reactions[messageId] = {};
+        if (!reactions[messageId][emoji]) reactions[messageId][emoji] = [];
 
-        if (!reactions[messageId]) {
-            reactions[messageId] = {};
-        }
+        const usersList = reactions[messageId][emoji];
+        const index = usersList.indexOf(socket.username);
 
-        if (!reactions[messageId][emoji]) {
-            reactions[messageId][emoji] = [];
-        }
+        if (index > -1) usersList.splice(index, 1);
+        else usersList.push(socket.username);
 
-        const users = reactions[messageId][emoji];
-
-        const index = users.indexOf(socket.username);
-
-        if (index > -1) {
-            users.splice(index, 1);
-        } else {
-            users.push(socket.username);
-        }
-
-        io.emit("reaction update", {
+        io.to(socket.currentRoom).emit("reaction update", {
             messageId,
             reactions: reactions[messageId]
         });
-
     });
 
     socket.on("edit message", (data) => {
-
-        if (
-            messages[data.id] &&
-            messages[data.id].user === socket.username
-        ) {
-
-            messages[data.id].text = data.text;
-
-            io.emit("edit message", data);
+        const room = socket.currentRoom;
+        if (messagesByRoom[room]) {
+            const msg = messagesByRoom[room].find(m => m.id === data.id);
+            if (msg && msg.user === socket.username) {
+                msg.text = data.text;
+                io.to(room).emit("edit message", data);
+            }
         }
-
     });
 
     socket.on("typing", (username) => {
-
-        socket.broadcast.emit("typing", username);
-
+        socket.broadcast.to(socket.currentRoom).emit("typing", username);
     });
-socket.on(
-    "pin message",
-    (text) => {
 
-        pinnedMessage = text;
+    socket.on("pin message", (text) => {
+        const room = socket.currentRoom || "global";
+        pinnedMessages[room] = text;
+        io.to(room).emit("pin message", text);
+    });
 
-        io.emit(
-            "pin message",
-            text
-        );
-
-    }
-);
-
-socket.on(
-    "unpin message",
-    () => {
-
-        pinnedMessage = "";
-
-        io.emit(
-            "unpin message"
-        );
-
-    }
-);
+    socket.on("unpin message", () => {
+        const room = socket.currentRoom || "global";
+        pinnedMessages[room] = "";
+        io.to(room).emit("unpin message");
+    });
 
     socket.on("disconnect", () => {
+        const username = onlineUsers[socket.id];
+        delete onlineUsers[socket.id];
 
-        users--;
+        io.emit("update user lists", {
+            online: Object.values(onlineUsers),
+            allVisited: Array.from(allVisitedUsers)
+        });
 
-        io.emit("users count", users);
-
-        if (socket.username) {
-
-            onlineUsers = onlineUsers.filter(
-                user => user !== socket.username
-            );
-
-            io.emit("online users", onlineUsers);
-
-            io.emit(
-                "system",
-                socket.username + " left the chat"
-            );
+        if (username) {
+            io.to("global").emit("system", username + " left the chat");
         }
-
     });
-
 });
 
 const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

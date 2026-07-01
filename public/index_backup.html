@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="icon" type="image/png" href="favicon.png">
+
+<title>Devesh Chat</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#111;
+    color:white;
+    margin:0;
+    height:100vh;
+    overflow:hidden;
+}
+
+#app{
+    display:flex;
+    height:100vh;
+}
+
+#sidebar{
+    width:300px;
+    background:#202020;
+    border-right:1px solid #333;
+    display:flex;
+    flex-direction:column;
+}
+
+#searchArea{
+    padding:10px;
+}
+
+#searchUser{
+    width:100%;
+    box-sizing:border-box;
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    outline:none;
+}
+
+#globalBtn{
+    padding:15px;
+    background:#111;
+    cursor:pointer;
+    border-bottom:1px solid #333;
+    font-weight:bold;
+}
+
+#globalBtn:hover{
+    background:#2b2b2b;
+}
+
+#contacts{
+    flex:1;
+    overflow-y:auto;
+}
+
+#chatArea{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+
+h2{
+    text-align:center;
+    background:#202020;
+    margin:0;
+    padding:15px;
+}
+
+#users{
+    text-align:center;
+    padding:8px;
+    color:#8cff8c;
+    background:#181818;
+}
+
+#chat{
+    height:100%;
+    overflow-y:auto;
+    padding:15px;
+    display:flex;
+    flex-direction:column;
+}
+
+.message{
+    max-width:70%;
+    padding:10px;
+    border-radius:15px;
+    margin:6px 0;
+    word-wrap:break-word;
+}
+
+.mine{
+    align-self:flex-end;
+    background:#005c4b;
+}
+
+.other{
+    align-self:flex-start;
+    background:#2b2b2b;
+}
+
+.name{
+    font-size:12px;
+    font-weight:bold;
+    margin-bottom:3px;
+}
+
+.time{
+    font-size:11px;
+    opacity:.7;
+    text-align:right;
+    margin-top:4px;
+}
+
+.system{
+    color:#aaa;
+    text-align:center;
+    margin:10px 0;
+}
+
+#bottom{
+    display:flex;
+    padding:10px;
+    background:#202020;
+}
+
+input{
+    flex:1;
+    padding:10px;
+    border:none;
+    outline:none;
+}
+
+button{
+    padding:10px 20px;
+    margin-left:5px;
+    cursor:pointer;
+}
+input{
+    flex:1;
+    padding:12px;
+    border:none;
+    outline:none;
+    border-radius:10px;
+    font-size:16px;
+}
+
+button{
+    padding:12px 20px;
+    margin-left:5px;
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    background:#00a884;
+    color:white;
+    font-weight:bold;
+}
+
+@media (max-width: 600px){
+
+    h2{
+        font-size:20px;
+        padding:12px;
+    }
+
+    #users{
+        font-size:14px;
+    }
+
+    #chat{
+        height:68vh;
+        padding:10px;
+    }
+
+    .message{
+        max-width:85%;
+        font-size:15px;
+    }
+
+    #bottom{
+        padding:8px;
+    }
+
+    input{
+        font-size:16px;
+    }
+
+    button{
+        padding:12px 15px;
+    }
+}
+#menuContainer{
+    position:absolute;
+    top:15px;
+    right:15px;
+}
+
+#menuBtn{
+    background:none;
+    color:white;
+    font-size:28px;
+    padding:5px 10px;
+}
+
+#menu{
+    display:none;
+    position:absolute;
+    right:0;
+    top:45px;
+    background:#222;
+    border-radius:10px;
+    overflow:hidden;
+    min-width:140px;
+}
+
+#menu button{
+    width:100%;
+    margin:0;
+    border-radius:0;
+    text-align:left;
+    background:#222;
+}
+
+#menu button:hover{
+    background:#333;
+}
+#messageMenu button{
+    width:100%;
+    margin:2px 0;
+    border-radius:6px;
+    text-align:left;
+}
+.voiceMessage{
+display:flex;
+align-items:center;
+gap:10px;
+background:#1f2c34;
+padding:8px 12px;
+border-radius:18px;
+margin-top:5px;
+width:220px;
+}
+
+.voiceMessage button{
+width:38px;
+height:38px;
+padding:0;
+border-radius:50%;
+font-size:18px;
+flex-shrink:0;
+}
+
+.voiceWave{
+flex:1;
+font-size:16px;
+letter-spacing:2px;
+color:#8cff8c;
+overflow:hidden;
+white-space:nowrap;
+}
+
+.voiceMessage audio{
+display:none;
+}
+
+.contact{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:14px;
+    cursor:pointer;
+    border-bottom:1px solid #2d2d2d;
+}
+
+.contact:hover{
+    background:#2b2b2b;
+}
+
+.contact span:first-child{
+    font-size:14px;
+}
+
+#chatHeader{
+
+    height:60px;
+
+    display:flex;
+
+    align-items:center;
+
+    padding:0 20px;
+
+    background:#202020;
+
+    border-bottom:1px solid #333;
+
+    font-size:20px;
+
+    font-weight:bold;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="app">
+
+    <div id="sidebar">
+
+        <div id="searchArea">
+
+            <input
+            id="searchUser"
+            placeholder="🔍 Search users">
+
+        </div>
+
+        <div
+        id="globalBtn"
+        onclick="openGlobalChat()">
+
+            🌍 Global Chat
+
+        </div>
+
+        <div id="contacts">
+
+        </div>
+
+    </div>
+<div id="chatArea">
+
+    <div id="chatHeader">
+        🌍 Global Chat
+    </div>
+
+    <div id="globalChatContainer">
+
+        <div id="chat"></div>
+
+    </div>
+
+    <div id="dmChatContainer" style="display:none;">
+
+        <div id="dmChat">
+
+            <div
+            style="
+            text-align:center;
+            margin-top:80px;
+            color:gray;
+            font-size:18px;
+            ">
+
+                No conversation yet 💬
+
+            </div>
+
+        </div>
+
+    </div>
+
+<div
+id="dmChatContainer"
+style="display:none;">
+
+    <div id="dmChat">
+
+        <div
+        style="
+        text-align:center;
+        margin-top:80px;
+        color:gray;
+        font-size:18px;
+        ">
+
+            No conversation yet 💬
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+<h2>
+    <img src="logo.png"
+         style="height:55px;vertical-align:middle;margin-right:10px;">
+    Devesh Chat
+</h2>
+<div id="menuContainer">
+
+    <button id="menuBtn"
+    onclick="toggleMenu()">
+        ⋮
+    </button>
+
+    <div id="menu">
+
+        <button onclick="toggleTheme()">
+            🌙 Theme
+        </button>
+
+        <button onclick="logout()">
+            🚪 Logout
+        </button>
+
+    </div>
+
+</div>
+<div id="pinnedMessage"
+style="
+display:none;
+background:#333;
+padding:10px;
+text-align:center;
+border-bottom:2px solid #00a884;
+">
+
+📌 <span id="pinnedText"></span>
+
+<button
+onclick="unpinMessage()"
+style="
+margin-left:10px;
+padding:4px 8px;
+">
+❌
+</button>
+
+</div>
+
+
+
+</div>
+<div
+id="typing"
+style="
+padding:5px 15px;
+color:#aaa;
+font-style:italic;
+height:20px;
+">
+</div>
+<div id="replyBox"
+style="
+display:none;
+padding:8px 15px;
+background:#222;
+border-left:4px solid #00a884;
+">
+    <div id="replyText"></div>
+    <button onclick="cancelReply()">✖</button>
+</div>
+
+<div id="voicePreview"
+style="
+display:none;
+padding:10px;
+background:#222;
+">
+
+<audio
+id="voicePlayer"
+controls>
+</audio>
+
+<button
+onclick="deleteVoice()">
+🗑️
+</button>
+
+<button
+onclick="sendVoice()">
+📤
+</button>
+
+</div>
+
+<div id="bottom">
+    <input id="messageInput" placeholder="Type a message...">
+
+    <input
+    type="file"
+    id="fileInput"
+    accept="image/*"
+    style="display:none"
+    >
+
+    <button
+    onclick="
+    document
+    .getElementById(
+    'fileInput'
+    ).click()
+    ">
+    📷
+    </button>
+
+    <button id="recordBtn">
+    🎤
+    </button>
+
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const msgSound =
+new Audio(
+"https://actions.google.com/sounds/v1/cartoon/pop.ogg"
+);
+
+const joinSound =
+new Audio(
+"https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"
+);
+
+const leaveSound =
+new Audio(
+"https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg"
+);
+
+const socket = io();
+
+let replyTo = null;
+let privateUser = null;
+let darkMode = true;
+let selectedMessage = null;
+let selectedDiv = null;
+let pressTimer;
+let mediaRecorder;
+let audioChunks = [];
+let stream;
+let recordedBlob = null;
+
+let username = localStorage.getItem("username");
+
+if(!username){
+
+    username =
+    prompt("Choose a username") || "Anonymous";
+
+    localStorage.setItem(
+        "username",
+        username
+    );
+}
+
+socket.emit("new user", username);
+function toggleMenu(){
+
+    const menu =
+    document.getElementById(
+        "menu"
+    );
+
+    menu.style.display =
+    menu.style.display === "block"
+    ? "none"
+    : "block";
+}
+
+function toggleTheme(){
+
+    if(darkMode){
+
+        document.body.style.background =
+        "#ffffff";
+
+        document.body.style.color =
+        "#000000";
+
+        document.querySelector("h2")
+        .style.background =
+        "#e5e5e5";
+
+        document.getElementById("users")
+        .style.background =
+        "#f0f0f0";
+
+        document.getElementById("bottom")
+        .style.background =
+        "#e5e5e5";
+
+        document.getElementById("typing")
+        .style.color =
+        "#555";
+
+        document.getElementById("menu")
+        .style.background =
+        "#f0f0f0";
+
+        darkMode = false;
+
+    }else{
+
+        document.body.style.background =
+        "#111";
+
+        document.body.style.color =
+        "#fff";
+
+        document.querySelector("h2")
+        .style.background =
+        "#202020";
+
+        document.getElementById("users")
+        .style.background =
+        "#181818";
+
+        document.getElementById("bottom")
+        .style.background =
+        "#202020";
+
+        document.getElementById("typing")
+        .style.color =
+        "#aaa";
+
+        document.getElementById("menu")
+        .style.background =
+        "#222";
+
+        darkMode = true;
+    }
+}
+function showMessageMenu(x,y){
+
+    const menu =
+    document.getElementById(
+        "messageMenu"
+    );
+
+    document.getElementById(
+        "editBtn"
+    ).style.display =
+    selectedMessage.user === username
+    ? "block"
+    : "none";
+
+    document.getElementById(
+        "deleteBtn"
+    ).style.display =
+    selectedMessage.user === username
+    ? "block"
+    : "none";
+
+    menu.style.display =
+"block";
+
+const menuWidth =
+menu.offsetWidth;
+
+const menuHeight =
+menu.offsetHeight;
+
+let left = x;
+let top = y;
+
+if(
+    left + menuWidth >
+    window.innerWidth
+){
+    left =
+    window.innerWidth -
+    menuWidth - 10;
+}
+
+if(
+    top + menuHeight >
+    window.innerHeight
+){
+    top =
+    window.innerHeight -
+    menuHeight - 10;
+}
+
+if(left < 10){
+    left = 10;
+}
+
+if(top < 10){
+    top = 10;
+}
+
+menu.style.left =
+left + "px";
+
+menu.style.top =
+top + "px";
+}
+document.addEventListener(
+    "click",
+    () => {
+
+        document.getElementById(
+            "messageMenu"
+        ).style.display =
+        "none";
+    }
+);
+
+function editMessage(){
+
+    const newText = prompt(
+        "Edit message:",
+        selectedMessage.text
+    );
+
+    if(
+        newText &&
+        newText.trim() !== ""
+    ){
+
+        socket.emit(
+            "edit message",
+            {
+                id: selectedMessage.id,
+                text: newText
+            }
+        );
+    }
+}
+
+function copyMessage(){
+
+    navigator.clipboard.writeText(
+        selectedMessage.text
+    );
+}
+
+function pinMessage(){
+
+    socket.emit(
+        "pin message",
+        selectedMessage.text
+    );
+
+}
+function unpinMessage(){
+
+    socket.emit(
+        "unpin message"
+    );
+
+}
+function reactMessage(){
+
+    const picker =
+    document.getElementById(
+        "emojiPicker"
+    );
+
+    picker.style.display =
+    "block";
+
+    picker.style.left =
+    "50%";
+
+    picker.style.top =
+    "50%";
+}
+function addReaction(emoji){
+
+    document.getElementById(
+        "emojiPicker"
+    ).style.display =
+    "none";
+
+    socket.emit(
+        "reaction",
+        {
+            messageId:
+            selectedMessage.id,
+            emoji
+        }
+    );
+}
+
+function deleteMessage(){
+
+    socket.emit(
+        "delete message",
+        selectedMessage.id
+    );
+}
+function setReply(text){
+
+    replyTo = text;
+
+    document.getElementById(
+        "replyText"
+    ).textContent =
+    "Replying to: " + text;
+
+    document.getElementById(
+        "replyBox"
+    ).style.display =
+    "block";
+}
+
+function cancelReply(){
+
+    replyTo = null;
+
+    document.getElementById(
+        "replyBox"
+    ).style.display =
+    "none";
+}
+
+function startPrivateChat(user){
+
+    if(user===username){
+
+        alert("Khud ko DM nahi kar sakte 😆");
+
+        return;
+
+    }
+
+    privateUser = user;
+
+    alert("Private Chat : " + user);
+
+}
+
+function sendMessage() {
+
+    const input =
+    document.getElementById("messageInput");
+
+    if(input.value.trim() !== "") {
+
+        const messageData = {
+
+            id: Date.now() + Math.random(),
+
+            user: username,
+
+            text: input.value,
+
+            time: Date.now(),
+
+            reply: replyTo
+
+        };
+
+        if(privateUser){
+
+            socket.emit(
+                "private message",
+                {
+
+                    ...messageData,
+
+                    from: username,
+
+                    to: privateUser
+
+                }
+            );
+
+        }else{
+
+            socket.emit(
+                "chat message",
+                messageData
+            );
+
+        }
+
+        cancelReply();
+
+        input.value = "";
+
+    }
+
+}
+
+document
+.getElementById("messageInput")
+.addEventListener("keypress", e => {
+    if(e.key === "Enter") {
+        sendMessage();
+    }
+});
+document
+.getElementById("messageInput")
+.addEventListener("input", () => {
+
+    socket.emit(
+        "typing",
+        username
+    );
+});
+document
+.getElementById(
+"fileInput"
+)
+.addEventListener(
+"change",
+async function(){
+
+const file =
+this.files[0];
+
+if(!file) return;
+
+const formData =
+new FormData();
+
+formData.append(
+"file",
+file
+);
+
+const res =
+await fetch(
+"/upload",
+{
+method:"POST",
+body:formData
+}
+);
+
+const data =
+await res.json();
+
+socket.emit(
+"chat message",
+{
+id:
+Date.now()
++
+Math.random(),
+
+user:
+username,
+
+image:
+data.url,
+
+time:
+Date.now()
+}
+);
+
+});
+
+function deleteVoice(){
+
+recordedBlob = null;
+
+document
+.getElementById(
+"voicePreview"
+)
+.style.display =
+"none";
+
+document
+.getElementById(
+"voicePlayer"
+)
+.src = "";
+
+}
+
+async function sendVoice(){
+
+if(!recordedBlob)
+return;
+
+const formData =
+new FormData();
+
+formData.append(
+"file",
+recordedBlob,
+"voice.webm"
+);
+
+const res =
+await fetch(
+"/upload",
+{
+method:"POST",
+body:formData
+}
+);
+
+const data =
+await res.json();
+
+socket.emit(
+"chat message",
+{
+id:
+Date.now()
++
+Math.random(),
+
+user:
+username,
+
+audio:
+data.url,
+
+time:
+Date.now()
+}
+);
+
+deleteVoice();
+
+}
+
+function logout(){
+
+    localStorage.removeItem(
+        "username"
+    );
+
+    location.reload();
+}
+
+document
+.getElementById("recordBtn")
+.addEventListener(
+"click",
+async ()=>{
+if (!navigator.mediaDevices) {
+    alert("mediaDevices not supported");
+    return;
+}
+
+if(
+!mediaRecorder ||
+mediaRecorder.state === "inactive"
+){
+
+try {
+
+stream =
+await navigator
+.mediaDevices
+.getUserMedia({
+audio:true
+});
+
+audioChunks = [];
+
+mediaRecorder =
+new MediaRecorder(
+stream
+);
+
+} catch(err){
+
+alert(err.message);
+return;
+
+}
+
+audioChunks = [];
+
+mediaRecorder =
+new MediaRecorder(
+stream
+);
+
+mediaRecorder.ondataavailable =
+e => {
+
+audioChunks.push(
+e.data
+);
+
+};
+
+mediaRecorder.onstop =
+async ()=>{
+
+console.log("STOPPED");
+console.log(audioChunks);
+
+const audioBlob =
+new Blob(
+audioChunks,
+{
+type:"audio/webm"
+}
+);
+
+recordedBlob =
+audioBlob;
+
+document
+.getElementById(
+"voicePlayer"
+).src =
+URL.createObjectURL(
+audioBlob
+);
+
+document
+.getElementById(
+"voicePreview"
+).style.display =
+"block";
+
+stream
+.getTracks()
+.forEach(
+track => track.stop()
+);
+
+};
+
+mediaRecorder.start();
+
+document
+.getElementById(
+"recordBtn"
+).textContent =
+"⏹️";
+
+}else{
+
+mediaRecorder.stop();
+
+document
+.getElementById(
+"recordBtn"
+).textContent =
+"🎤";
+
+}
+
+});
+
+socket.on("chat message", data => {
+
+if(data.user !== username){
+
+    msgSound.play();
+}
+
+    const div =
+    document.createElement("div");
+div.dataset.id = data.id;
+setTimeout(()=>{
+
+if(
+data.user !== username
+){
+
+socket.emit(
+"message seen",
+{
+messageId:
+data.id,
+
+user:
+username
+}
+);
+
+}
+
+},1000);
+let startX = 0;
+
+div.addEventListener(
+    "touchstart",
+    e => {
+
+        startX =
+        e.changedTouches[0].clientX;
+    }
+);
+
+div.addEventListener(
+    "touchend",
+    e => {
+
+        let endX =
+        e.changedTouches[0].clientX;
+
+        if(endX - startX > 80){
+
+            setReply(
+                data.user +
+                ": " +
+                data.text
+            );
+        }
+    }
+);
+div.addEventListener(
+    "contextmenu",
+    (e) => {
+
+        e.preventDefault();
+
+        selectedMessage = data;
+        selectedDiv = div;
+
+        showMessageMenu(
+            e.pageX,
+            e.pageY
+        );
+    }
+);
+
+div.addEventListener(
+    "touchstart",
+    (e) => {
+
+        pressTimer =
+        setTimeout(() => {
+
+            selectedMessage =
+            data;
+            selectedDiv = div;
+
+            showMessageMenu(
+                e.touches[0].pageX,
+                e.touches[0].pageY
+            );
+
+        }, 500);
+
+    }
+);
+
+div.addEventListener(
+    "touchend",
+    () => {
+
+        clearTimeout(
+            pressTimer
+        );
+    }
+);
+div.addEventListener(
+    "dblclick",
+    () => {
+
+        setReply(
+            data.user +
+            ": " +
+            data.text
+        );
+    }
+);
+
+    div.className =
+        "message " +
+        (data.user === username
+        ? "mine"
+        : "other");
+
+    const time =
+        data.time
+        ? new Date(data.time)
+            .toLocaleTimeString([],{
+                hour:"2-digit",
+                minute:"2-digit"
+            })
+        : "";
+
+    div.innerHTML = `
+
+    ${data.reply ? `
+    <div style="
+        font-size:12px;
+        color:#8cff8c;
+        border-left:3px solid #8cff8c;
+        padding-left:5px;
+        margin-bottom:5px;
+    ">
+        ${data.reply}
+    </div>
+    ` : ""}
+
+    <div class="name">${data.user}</div>
+    ${data.text ? `
+<div class="messageText">
+${data.text}
+</div>
+` : ""}
+
+${data.image ? `
+<img
+src="${data.image}"
+style="
+max-width:250px;
+border-radius:10px;
+margin-top:5px;
+">
+` : ""}
+
+${data.audio ? `
+<div class="voiceMessage">
+
+<button
+class="playBtn"
+onclick="
+const audio =
+this.parentElement.querySelector('audio');
+
+if(audio.paused){
+audio.play();
+this.innerHTML='⏸️';
+}else{
+audio.pause();
+this.innerHTML='▶️';
+}
+">
+▶️
+</button>
+
+<div class="voiceWave">
+▁▂▃▄▅▆▇▆▅▄▃▂
+</div>
+
+<audio
+onended="
+this.parentElement.querySelector('.playBtn').innerHTML='▶️'
+">
+<source
+src="${data.audio}"
+type="audio/webm">
+</audio>
+
+</div>
+` : ""}
+    
+    <div class="time">${time}</div>
+<div
+class="seenBy"
+style="
+font-size:11px;
+opacity:.7;
+margin-top:3px;
+">
+</div>
+<div class="reactions"></div>
+`;
+
+    document
+    .getElementById("chat")
+    .appendChild(div);
+
+    div.scrollIntoView();
+});
+
+socket.on("private message", data => {
+
+    if(
+        data.from !== username &&
+        data.to !== username
+    ){
+        return;
+    }
+
+    if(
+        privateUser !==
+        (
+            data.from === username
+            ? data.to
+            : data.from
+        )
+    ){
+        return;
+    }
+
+    const div =
+    document.createElement("div");
+
+    div.className =
+        "message " +
+        (
+            data.from === username
+            ? "mine"
+            : "other"
+        );
+
+    const time =
+    new Date(data.time)
+    .toLocaleTimeString([],{
+        hour:"2-digit",
+        minute:"2-digit"
+    });
+
+    div.innerHTML = `
+        <div class="name">${data.from}</div>
+        <div class="messageText">${data.text}</div>
+        <div class="time">${time}</div>
+    `;
+
+    document
+        .getElementById("chat")
+        .appendChild(div);
+
+    div.scrollIntoView();
+
+});
+
+socket.on("system", msg => {
+
+    const div =
+    document.createElement("div");
+
+    div.className = "system";
+
+if(msg.includes("joined")){
+
+    joinSound.play();
+}
+
+if(msg.includes("left")){
+
+    leaveSound.play();
+}
+
+    div.textContent = msg;
+
+    document
+    .getElementById("chat")
+    .appendChild(div);
+
+    div.scrollIntoView();
+});
+
+socket.on("online users", users => {
+
+    const contacts =
+    document.getElementById("contacts");
+
+    contacts.innerHTML = "";
+
+    users.forEach(user => {
+
+        const div =
+        document.createElement("div");
+
+        div.className = "contact";
+
+        div.innerHTML = `
+            <span>🟢</span>
+            <span>${user}</span>
+        `;
+
+        div.onclick = () => {
+
+    if(user === username){
+        return;
+    }
+
+    privateUser = user;
+
+document.getElementById("globalChatContainer").style.display =
+"none";
+
+document.getElementById("dmChatContainer").style.display =
+"block";
+
+    document.getElementById("globalBtn").style.background =
+    "#111";
+
+    document
+    .querySelectorAll(".contact")
+    .forEach(c=>c.style.background="");
+
+    div.style.background =
+    "#2b2b2b";
+document.getElementById("chatHeader").innerHTML =
+"🟢 " + user;
+
+};
+
+        contacts.appendChild(div);
+
+    });
+
+});
+
+function openGlobalChat(){
+
+    privateUser = null;
+
+document.getElementById("globalChatContainer").style.display =
+"block";
+
+document.getElementById("dmChatContainer").style.display =
+"none";
+
+document.getElementById("chatHeader").innerHTML =
+"🌍 Global Chat";
+
+    document.getElementById("globalBtn").style.background =
+    "#00a884";
+
+    const contacts =
+    document.querySelectorAll(".contact");
+
+    contacts.forEach(contact => {
+
+        contact.style.background = "";
+
+    });
+
+}
+
+socket.on("typing", user => {
+
+    const typing =
+    document.getElementById(
+        "typing"
+    );
+
+    typing.textContent =
+    user + " is typing...";
+
+    clearTimeout(
+        typing.timeout
+    );
+
+    typing.timeout =
+    setTimeout(() => {
+
+        typing.textContent =
+        "";
+
+    }, 1500);
+});
+
+socket.on(
+    "delete message",
+    (messageId) => {
+
+        const msg =
+        document.querySelector(
+            `[data-id="${messageId}"]`
+        );
+
+        if(msg){
+
+            msg.remove();
+        }
+    }
+);
+
+socket.on(
+"message seen",
+(data)=>{
+
+const msg =
+document.querySelector(
+`[data-id="${data.messageId}"]`
+);
+
+if(!msg) return;
+
+const seenDiv =
+msg.querySelector(
+".seenBy"
+);
+
+if(seenDiv){
+
+seenDiv.textContent =
+"Seen by: " +
+data.users.join(", ");
+}
+
+});
+
+socket.on(
+    "reaction update",
+    (data) => {
+
+        const msg =
+        document.querySelector(
+            `[data-id="${data.messageId}"]`
+        );
+
+        if(!msg) return;
+
+        const box =
+        msg.querySelector(
+            ".reactions"
+        );
+
+        if(!box) return;
+
+        box.innerHTML = "";
+
+        for(
+            const emoji
+            in data.reactions
+        ){
+
+            const count =
+            data.reactions[
+                emoji
+            ].length;
+
+            if(count > 0){
+
+                box.innerHTML +=
+                `<span style="
+                    margin-right:8px;
+                    font-size:18px;
+                ">
+                    ${emoji} ${count}
+                </span>`;
+            }
+        }
+    }
+);
+socket.on(
+    "edit message",
+    (data) => {
+
+        const msg =
+        document.querySelector(
+            `[data-id="${data.id}"]`
+        );
+
+        if(msg){
+
+            const textDiv =
+            msg.querySelector(
+                ".messageText"
+            );
+
+            if(textDiv){
+
+                textDiv.textContent =
+                data.text + " (edited)";
+            }
+        }
+
+        if(
+            selectedMessage &&
+            selectedMessage.id === data.id
+        ){
+            selectedMessage.text =
+            data.text;
+        }
+    }
+);
+
+socket.on(
+    "pin message",
+    (text) => {
+
+        document.getElementById(
+            "pinnedText"
+        ).textContent = text;
+
+        document.getElementById(
+            "pinnedMessage"
+        ).style.display = "block";
+
+    }
+);
+
+socket.on(
+    "unpin message",
+    () => {
+
+        document.getElementById(
+            "pinnedMessage"
+        ).style.display = "none";
+
+    }
+);
+
+socket.on("chat history", (messages) => {
+
+    const chat =
+    document.getElementById("chat");
+
+    chat.innerHTML = "";
+
+    messages.forEach((data) => {
+
+        const div =
+        document.createElement("div");
+
+        div.dataset.id = data.id;
+
+        div.className =
+        "message " +
+        (data.user === username
+        ? "mine"
+        : "other");
+
+        const time =
+        new Date(data.time)
+        .toLocaleTimeString(
+            [],
+            {
+                hour:"2-digit",
+                minute:"2-digit"
+            }
+        );
+
+        div.innerHTML = `
+
+        ${data.reply ? `
+        <div style="
+        font-size:12px;
+        color:#8cff8c;
+        border-left:3px solid #8cff8c;
+        padding-left:5px;
+        margin-bottom:5px;">
+        ${data.reply}
+        </div>
+        ` : ""}
+
+        <div class="name">${data.user}</div>
+
+        ${data.text ? `
+        <div class="messageText">
+        ${data.text}
+        </div>` : ""}
+
+        ${data.image ? `
+        <img src="${data.image}"
+        style="
+        max-width:250px;
+        border-radius:10px;
+        margin-top:5px;">
+        ` : ""}
+
+        ${data.audio ? `
+        <audio controls
+        style="
+        width:100%;
+        margin-top:5px;">
+        <source
+        src="${data.audio}"
+        type="audio/webm">
+        </audio>
+        ` : ""}
+
+        <div class="time">${time}</div>
+
+        <div class="seenBy"></div>
+
+        <div class="reactions"></div>
+        `;
+
+        chat.appendChild(div);
+
+    });
+
+    chat.scrollTop =
+    chat.scrollHeight;
+
+});
+
+</script>
+<div id="messageMenu"
+style="
+display:none;
+position:fixed;
+background:#222;
+border-radius:10px;
+padding:5px;
+z-index:9999;
+min-width:180px;
+">
+
+<button id="editBtn"
+onclick="editMessage()">
+✏️ Edit
+</button>
+<button onclick="copyMessage()">📋 Copy</button>
+<button onclick="pinMessage()">📌 Pin</button>
+<button onclick="reactMessage()">😂 React</button>
+<button id="deleteBtn"
+onclick="deleteMessage()">
+🗑️ Delete
+</button>
+</div>
+<div id="emojiPicker"
+style="
+display:none;
+position:fixed;
+background:#222;
+padding:10px;
+border-radius:10px;
+z-index:9999;
+">
+
+<span onclick="addReaction('👍')">👍</span>
+<span onclick="addReaction('❤️')">❤️</span>
+<span onclick="addReaction('😂')">😂</span>
+<span onclick="addReaction('😮')">😮</span>
+<span onclick="addReaction('😢')">😢</span>
+
+    </div>
+
+</div>
+</body>
+</html>
