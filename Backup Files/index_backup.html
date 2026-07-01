@@ -205,6 +205,7 @@
         .time { font-size: 10px; opacity: .6; text-align: right; margin-top: 4px; }
         .system { color: var(--text-sub); text-align: center; margin: 12px 0; font-size: 13px; }
         
+        /* 🛠️ FIXED BOTTOM INPUT PANEL FOR SCREEN COMPLIANCE */
         #bottom { 
             display: flex; 
             align-items: center;
@@ -219,7 +220,7 @@
         }
         #bottom input { 
             flex: 1; 
-            min-width: 0; 
+            min-width: 0; /* Prevents input from pushing buttons out of screen */
             padding: 11px 14px; 
             border: none; 
             outline: none; 
@@ -236,7 +237,7 @@
             background: #00a884; 
             color: white; 
             font-weight: bold; 
-            flex-shrink: 0; 
+            flex-shrink: 0; /* Button will never shrink or get compressed */
         }
         .icon-btn {
             background: transparent !important;
@@ -245,7 +246,7 @@
             padding: 6px 4px !important;
         }
 
-        /* Mobile Adjustments */
+        /* 📱 EXTREMELY STABLE MOBILE VIEW RULES */
         @media (max-width: 768px) {
             #sidebar {
                 width: 100%;
@@ -478,6 +479,7 @@ function toggleTheme(){
     closeAllMenus();
 }
 
+// Global window close handler for dynamic UI adjustments
 window.onclick = function(event) {
     if (!event.target.matches('#menuBtn')) {
         closeAllMenus();
@@ -496,6 +498,7 @@ function showMessageMenu(x, y){
     document.getElementById("deleteBtn").style.display = selectedMessage.user === username ? "block" : "none";
     
     menu.style.display = "block";
+    
     const menuWidth = menu.offsetWidth || 160;
     const menuHeight = menu.offsetHeight || 160;
 
@@ -599,18 +602,13 @@ document.getElementById("fileInput").addEventListener("change", async function()
 
     try {
         const res = await fetch("/upload", { method:"POST", body:formData });
-        if (!res.ok) throw new Error("Server responded with 500 or crash html");
-        
         const data = await res.json();
         socket.emit("chat message", {
             id: Date.now() + Math.random(),
             image: data.url,
             time: Date.now()
         });
-    } catch(err) { 
-        console.error("Upload error caught safely: ", err); 
-        alert("Upload Failed! Please check your backend terminal server logs for /upload route.");
-    }
+    } catch(err) { console.error(err); }
 });
 
 function deleteVoice(){
@@ -626,8 +624,6 @@ async function sendVoice(){
 
     try {
         const res = await fetch("/upload", { method:"POST", body:formData });
-        if (!res.ok) throw new Error("Server status code is not 200");
-        
         const data = await res.json();
         socket.emit("chat message", {
             id: Date.now() + Math.random(),
@@ -635,10 +631,7 @@ async function sendVoice(){
             time: Date.now()
         });
         deleteVoice();
-    } catch(err) { 
-        console.error("Voice Upload error caught safely: ", err);
-        alert("Voice Upload Failed! Please check if backend server supports storage uploads.");
-    }
+    } catch(err) { console.error(err); }
 }
 
 function formatTime(time){
