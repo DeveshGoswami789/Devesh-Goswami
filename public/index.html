@@ -98,7 +98,6 @@
             background: #2b2b2b;
         }
         
-        /* Status & Badge Container */
         .status-badge-container {
             display: flex;
             align-items: center;
@@ -115,7 +114,6 @@
             background: #8cff8c;
         }
         
-        /* Red Unread Counter Badge */
         .msg-badge {
             background: #e53935;
             color: white;
@@ -171,10 +169,7 @@
             }
             #backBtn { display: block; }
             .message { max-width: 85%; }
-            
-            body.chat-open #sidebar {
-                transform: translateX(-100%);
-            }
+            body.chat-open #sidebar { transform: translateX(-100%); }
         }
 
         #menuContainer { position: absolute; top: 12px; right: 15px; z-index: 25; }
@@ -287,7 +282,6 @@ let audioChunks = [];
 let stream;
 let recordedBlob = null;
 
-// Object to store unread counts local-state
 let unreadCounts = {}; 
 let onlineUsersCache = [];
 
@@ -317,7 +311,6 @@ function changeChatTarget(target) {
     cancelReply();
     closeAllMenus();
     
-    // Reset unread count for this selected target room
     unreadCounts[target] = 0;
     updateBadgeDOM(target);
     
@@ -332,6 +325,7 @@ function changeChatTarget(target) {
     }
 
     document.body.classList.add("chat-open");
+    document.getElementById("chat").innerHTML = ""; // Clear active box before room switch load
     socket.emit("switch room", target);
 }
 
@@ -340,7 +334,7 @@ function backToContactList() {
 }
 
 socket.on("update user lists", (data) => {
-    onlineUsersCache = data.online; // caching to refresh online indicators correctly
+    onlineUsersCache = data.online;
     const container = document.getElementById("usersListContainer");
     container.innerHTML = "";
 
@@ -621,20 +615,27 @@ function setupMessageEvents(div, data) {
 }
 
 socket.on("chat message", data => {
-    // Determine the source origin of message to assign badge correctly
-    const msgOriginRoom = data.room || "global";
+    // Determine target unread key correctly
+    let msgOriginRoom = data.room || "global";
     
-    // If message is not from current active window view, trigger badge calculation
+    // If it's a DM, backend might label room as sender name or recipient name
+    // Match against current sender to find target unread key
+    if (msgOriginRoom !== "global" && msgOriginRoom !== "global") {
+         if (data.user !== username) {
+              msgOriginRoom = data.user; 
+         }
+    }
+    
+    // Count Badge check logic
     if (msgOriginRoom !== currentChatTarget) {
         if (data.user !== username) {
             unreadCounts[msgOriginRoom] = (unreadCounts[msgOriginRoom] || 0) + 1;
             updateBadgeDOM(msgOriginRoom);
             msgSound.play();
         }
-        return; // Don't inject div directly if we are not currently viewing that chat box
+        return; 
     }
 
-    // Traditional message append flow for the currently open active chat window
     if(data.user !== username){ msgSound.play(); }
     const div = document.createElement("div");
     div.dataset.id = data.id;

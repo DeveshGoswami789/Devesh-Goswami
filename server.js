@@ -1,199 +1,185 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
+const multer = require("multer");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static("public"));
+const PORT = process.env.PORT || 3000;
 
-if (!fs.existsSync("uploads")) {
-    fs.mkdirSync("uploads");
-}
-app.use("/uploads", express.static("uploads"));
+// Static files (Frontend) serve karne ke liye
+app.use(express.static(path.join(__dirname, "public")));
 
+// File/Images/Voice upload karne ke liye Multer Storage Setup
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, "uploads/"),
-    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, "public/uploads"));
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + "-" + file.originalname);
+    }
 });
-const upload = multer({ storage });
+const upload = multer({ storage: storage });
 
-// Core Data Structures
-let allVisitedUsers = new Set(); // Jo log kabhi bhi visit kar chuke hain
-let onlineUsers = {}; // { socketId: username }
-let messagesByRoom = { "global": [] }; // Room wise chat history {"global": [...], "user1_user2": [...]}
-let seenData = {};
-let reactions = {};
-let pinnedMessages = {}; // Room wise pin message
-
-app.post("/upload", upload.single("file"), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: "No file" });
-    res.json({ url: "/uploads/" + req.file.filename });
+// Upload API route
+app.post("/upload", upload.single("file"), (req, file) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
 });
 
+// In-memory Database / States
+let onlineUsers = {}; // socket.id -> username
+let allVisitedUsers = new Set(); // Stores history of all logged in users
+let globalHistory = []; // Stores global room messages
+let dmHistories = {}; // roomKey -> messageArray (e.g., "user1-user2")
+let pinnedMessages = {}; // room -> pinnedText
+
+// Helper function to get private DM room key alphabet-wise (e.g., "aman-devesh")
+function getDMKey(user1, user2) {
+    return [user1, user2].sort().join("-");
+}
+
+// Global User List Sync Broadcast Helper
+function broadcastUserLists() {
+    io.emit("update user lists", {
+        online: Object.values(onlineUsers),
+        allVisited: Array.from(allVisitedUsers)
+    });
+}
+
+// Socket.io Core Engine Logic
 io.on("connection", (socket) => {
-    console.log("A user connected");
-
+    
+    // 1. New User Joins
     socket.on("new user", (username) => {
         socket.username = username;
-        onlineUsers[socket.id] = username;
-        allVisitedUsers.add(username); // Add to permanent list
-
-        // Default sabhi ko pehle global room me daalenge
+        socket.currentRoom = "global"; // Default room is global
         socket.join("global");
-        socket.currentRoom = "global";
-
-        // Sabhi ko updated users list bhejna
-        io.emit("update user lists", {
-            online: Object.values(onlineUsers),
-            allVisited: Array.from(allVisitedUsers)
-        });
-
-        io.to("global").emit("system", `${username} joined the chat`);
         
-        // Initial history for global
-        socket.emit("chat history", messagesByRoom["global"] || []);
+        onlineUsers[socket.id] = username;
+        allVisitedUsers.add(username);
+        
+        // Broadcast System Alert & Refresh User Lists
+        socket.to("global").emit("system", ` can joined the chat`);
+        broadcastUserLists();
+        
+        // Send initial history of global chat to the user
+        socket.emit("chat history", globalHistory);
         if (pinnedMessages["global"]) {
             socket.emit("pin message", pinnedMessages["global"]);
         }
     });
 
-    // Room Switch Logic (Global <-> Private DM)
-    socket.on("switch room", (targetUser) => {
-        // Purane room ko chodo
-        if (socket.currentRoom) {
-            socket.leave(socket.currentRoom);
-        }
-
-        if (targetUser === "global") {
+    // 2. Room/DM Switch Engine
+    socket.on("switch room", (target) => {
+        // Purana room leave karo
+        socket.leave(socket.currentRoom);
+        
+        if (target === "global") {
             socket.currentRoom = "global";
+            socket.join("global");
+            socket.emit("chat history", globalHistory);
+            if (pinnedMessages["global"]) {
+                socket.emit("pin message", pinnedMessages["global"]);
+            } else {
+                socket.emit("unpin message");
+            }
         } else {
-            // Private Room ID unique honi chahiye, isliye alphabetical order me sort karenge
-            // Agar Devesh aur Amit chat kar rahe hain toh room hamesha "Amit_Devesh" banega
-            const roomID = [socket.username, targetUser].sort().join("_");
-            socket.currentRoom = roomID;
-        }
-
-        socket.join(socket.currentRoom);
-
-        // Naye room ki history bhejna
-        if (!messagesByRoom[socket.currentRoom]) {
-            messagesByRoom[socket.currentRoom] = [];
-        }
-        socket.emit("chat history", messagesByRoom[socket.currentRoom]);
-        
-        // Pin message handle karna naye room ka
-        if (pinnedMessages[socket.currentRoom]) {
-            socket.emit("pin message", pinnedMessages[socket.currentRoom]);
-        } else {
-            socket.emit("unpin message");
-        }
-    });
-
-    socket.on("chat message", (data) => {
-        const currentRoom = socket.currentRoom || "global";
-        
-        const msgData = {
-            ...data,
-            user: socket.username,
-            room: currentRoom
-        };
-
-        if (!messagesByRoom[currentRoom]) {
-            messagesByRoom[currentRoom] = [];
-        }
-        messagesByRoom[currentRoom].push(msgData);
-
-        // Sirf usi room ke logo ko message bhejna
-        io.to(currentRoom).emit("chat message", msgData);
-    });
-
-    socket.on("message seen", (data) => {
-        if (!seenData[data.messageId]) seenData[data.messageId] = [];
-        if (!seenData[data.messageId].includes(data.user)) {
-            seenData[data.messageId].push(data.user);
-        }
-        io.to(socket.currentRoom).emit("message seen", {
-            messageId: data.messageId,
-            users: seenData[data.messageId]
-        });
-    });
-
-    socket.on("delete message", (messageId) => {
-        const room = socket.currentRoom;
-        if (messagesByRoom[room]) {
-            messagesByRoom[room] = messagesByRoom[room].filter(m => {
-                if (m.id === messageId && m.user === socket.username) {
-                    return false;
-                }
-                return true;
-            });
-            io.to(room).emit("delete message", messageId);
-        }
-    });
-
-    socket.on("reaction", (data) => {
-        const { messageId, emoji } = data;
-        if (!reactions[messageId]) reactions[messageId] = {};
-        if (!reactions[messageId][emoji]) reactions[messageId][emoji] = [];
-
-        const usersList = reactions[messageId][emoji];
-        const index = usersList.indexOf(socket.username);
-
-        if (index > -1) usersList.splice(index, 1);
-        else usersList.push(socket.username);
-
-        io.to(socket.currentRoom).emit("reaction update", {
-            messageId,
-            reactions: reactions[messageId]
-        });
-    });
-
-    socket.on("edit message", (data) => {
-        const room = socket.currentRoom;
-        if (messagesByRoom[room]) {
-            const msg = messagesByRoom[room].find(m => m.id === data.id);
-            if (msg && msg.user === socket.username) {
-                msg.text = data.text;
-                io.to(room).emit("edit message", data);
+            // Private DM target logic
+            const dmKey = getDMKey(socket.username, target);
+            socket.currentRoom = dmKey;
+            socket.join(dmKey);
+            
+            if (!dmHistories[dmKey]) dmHistories[dmKey] = [];
+            socket.emit("chat history", dmHistories[dmKey]);
+            
+            if (pinnedMessages[dmKey]) {
+                socket.emit("pin message", pinnedMessages[dmKey]);
+            } else {
+                socket.emit("unpin message");
             }
         }
     });
 
-    socket.on("typing", (username) => {
-        socket.broadcast.to(socket.currentRoom).emit("typing", username);
+    // 3. Main Chat Message Handler (Fixed Room Bug)
+    socket.on("chat message", (data) => {
+        data.user = socket.username;
+        
+        // Capture context dynamic origin info
+        if (socket.currentRoom === "global") {
+            data.room = "global";
+            globalHistory.push(data);
+            io.to("global").emit("chat message", data);
+        } else {
+            data.room = socket.currentRoom; // custom compound dynamic string key
+            if (!dmHistories[socket.currentRoom]) dmHistories[socket.currentRoom] = [];
+            dmHistories[socket.currentRoom].push(data);
+            
+            // Broadcast straight inside target DM room box pipeline
+            io.to(socket.currentRoom).emit("chat message", data);
+        }
     });
 
-    socket.on("pin message", (text) => {
-        const room = socket.currentRoom || "global";
-        pinnedMessages[room] = text;
-        io.to(room).emit("pin message", text);
+    // 4. Typing State Tracker
+    socket.on("typing", (user) => {
+        socket.to(socket.currentRoom).emit("typing", user);
     });
 
-    socket.on("unpin message", () => {
-        const room = socket.currentRoom || "global";
-        pinnedMessages[room] = "";
-        io.to(room).emit("unpin message");
-    });
-
-    socket.on("disconnect", () => {
-        const username = onlineUsers[socket.id];
-        delete onlineUsers[socket.id];
-
-        io.emit("update user lists", {
-            online: Object.values(onlineUsers),
-            allVisited: Array.from(allVisitedUsers)
+    // 5. Message Seen Status Feature
+    socket.on("message seen", (data) => {
+        // Broadcast acknowledgement downstream inside identical active pool
+        socket.to(socket.currentRoom).emit("message seen", {
+            messageId: data.messageId,
+            users: [data.user]
         });
+    });
 
-        if (username) {
-            io.to("global").emit("system", username + " left the chat");
+    // 6. Message Reactions Engine
+    socket.on("reaction", (data) => {
+        // Inject inside running stream
+        io.to(socket.currentRoom).emit("reaction update", {
+            messageId: data.messageId,
+            reactions: {
+                [data.emoji]: [socket.username]
+            }
+        });
+    });
+
+    // 7. Edit Message Engine
+    socket.on("edit message", (data) => {
+        io.to(socket.currentRoom).emit("edit message", data);
+    });
+
+    // 8. Pin/Unpin Message System
+    socket.on("pin message", (text) => {
+        pinnedMessages[socket.currentRoom] = text;
+        io.to(socket.currentRoom).emit("pin message", text);
+    });
+    socket.on("unpin message", () => {
+        delete pinnedMessages[socket.currentRoom];
+        io.to(socket.currentRoom).emit("unpin message");
+    });
+
+    // 9. Delete Message Handler
+    socket.on("delete message", (id) => {
+        io.to(socket.currentRoom).emit("delete message", id);
+    });
+
+    // 10. Disconnect Network Handler
+    socket.on("disconnect", () => {
+        if (socket.username) {
+            socket.to("global").emit("system", `${socket.username} left the chat`);
+            delete onlineUsers[socket.id];
+            broadcastUserLists();
         }
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Server Fire Up Ignition
+server.listen(PORT, () => {
+    console.log(`Server is running smoothly on http://localhost:${PORT}`);
+});
