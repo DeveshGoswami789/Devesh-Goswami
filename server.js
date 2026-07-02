@@ -7,14 +7,20 @@ const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 
+// 📂 Public files serve karna
 app.use(express.static(path.join(__dirname, "public")));
 
-// 📂 Auto Create Uploads Directory if it doesn't exist
-const uploadDir = path.join(__dirname, "public/uploads");
+// 📂 Auto Create Uploads Directory if it doesn't exist (Render Storage Friendly)
+const uploadDir = path.join(__dirname, "public", "uploads");
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -24,10 +30,13 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname);
+        cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, '-'));
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB Limit for Render
+});
 
 app.post("/upload", upload.single("file"), (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
@@ -96,7 +105,7 @@ io.on("connection", (socket) => {
 
     socket.on("chat message", (data) => {
         data.user = socket.username;
-        data.reactions = {}; // Initialize reactions object for every new message
+        data.reactions = {}; 
         
         if (socket.currentRoom === "global") {
             data.room = "global";
@@ -121,10 +130,8 @@ io.on("connection", (socket) => {
         });
     });
 
-    // 🌟 REACTION FIX: Save reaction directly into history arrays
     socket.on("reaction", (data) => {
         let msgTarget = null;
-        
         if (socket.currentRoom === "global") {
             msgTarget = globalHistory.find(m => m.id == data.messageId);
         } else {
@@ -135,8 +142,6 @@ io.on("connection", (socket) => {
 
         if (msgTarget) {
             if (!msgTarget.reactions) msgTarget.reactions = {};
-            
-            // Toggle or clear reaction logic: if same user reacts same emoji, remove it.
             if (!msgTarget.reactions[data.emoji]) {
                 msgTarget.reactions[data.emoji] = [];
             }
