@@ -3,6 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const multer = require("multer");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
@@ -12,9 +13,15 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, "public")));
 
+// 📂 Auto Create Uploads Directory if it doesn't exist
+const uploadDir = path.join(__dirname, "public/uploads");
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, "public/uploads"));
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + "-" + file.originalname);
@@ -89,17 +96,16 @@ io.on("connection", (socket) => {
 
     socket.on("chat message", (data) => {
         data.user = socket.username;
+        data.reactions = {}; // Initialize reactions object for every new message
         
         if (socket.currentRoom === "global") {
             data.room = "global";
             globalHistory.push(data);
             io.to("global").emit("chat message", data);
         } else {
-            data.room = socket.currentRoom; // compound key like "A-B"
+            data.room = socket.currentRoom; 
             if (!dmHistories[socket.currentRoom]) dmHistories[socket.currentRoom] = [];
             dmHistories[socket.currentRoom].push(data);
-            
-            // CRITICAL FIX: Dono participants ko directly emit taaki sync instant ho
             io.to(socket.currentRoom).emit("chat message", data);
         }
     });
@@ -115,14 +121,48 @@ io.on("connection", (socket) => {
         });
     });
 
+    // 🌟 REACTION FIX: Save reaction directly into history arrays
     socket.on("reaction", (data) => {
-        io.to(socket.currentRoom).emit("reaction update", {
-            messageId: data.messageId,
-            reactions: { [data.emoji]: [socket.username] }
-        });
+        let msgTarget = null;
+        
+        if (socket.currentRoom === "global") {
+            msgTarget = globalHistory.find(m => m.id == data.messageId);
+        } else {
+            if (dmHistories[socket.currentRoom]) {
+                msgTarget = dmHistories[socket.currentRoom].find(m => m.id == data.messageId);
+            }
+        }
+
+        if (msgTarget) {
+            if (!msgTarget.reactions) msgTarget.reactions = {};
+            
+            // Toggle or clear reaction logic: if same user reacts same emoji, remove it.
+            if (!msgTarget.reactions[data.emoji]) {
+                msgTarget.reactions[data.emoji] = [];
+            }
+            
+            if (msgTarget.reactions[data.emoji].includes(socket.username)) {
+                msgTarget.reactions[data.emoji] = msgTarget.reactions[data.emoji].filter(u => u !== socket.username);
+            } else {
+                msgTarget.reactions[data.emoji].push(socket.username);
+            }
+            
+            io.to(socket.currentRoom).emit("reaction update", {
+                messageId: data.messageId,
+                reactions: msgTarget.reactions
+            });
+        }
     });
 
     socket.on("edit message", (data) => {
+        let msgTarget = null;
+        if (socket.currentRoom === "global") {
+            msgTarget = globalHistory.find(m => m.id == data.id);
+        } else if (dmHistories[socket.currentRoom]) {
+            msgTarget = dmHistories[socket.currentRoom].find(m => m.id == data.id);
+        }
+        if(msgTarget) msgTarget.text = data.text;
+
         io.to(socket.currentRoom).emit("edit message", data);
     });
 
@@ -137,6 +177,11 @@ io.on("connection", (socket) => {
     });
 
     socket.on("delete message", (id) => {
+        if (socket.currentRoom === "global") {
+            globalHistory = globalHistory.filter(m => m.id != id);
+        } else if (dmHistories[socket.currentRoom]) {
+            dmHistories[socket.currentRoom] = dmHistories[socket.currentRoom].filter(m => m.id != id);
+        }
         io.to(socket.currentRoom).emit("delete message", id);
     });
 

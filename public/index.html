@@ -6,7 +6,6 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <title>Devesh Chat Pro</title>
     <style>
-        /* CSS Variables for Full-Screen Dark/Light Theme Switching */
         :root {
             --bg-body: #111b21;
             --bg-sidebar: #111b21;
@@ -52,7 +51,6 @@
             transition: background 0.3s, color 0.3s;
         }
         
-        /* Sidebar Layout */
         #sidebar {
             width: 340px;
             background: var(--bg-sidebar);
@@ -83,7 +81,6 @@
             font-weight: 600;
         }
 
-        /* Main Chat Window Layout */
         #mainChat {
             flex: 1;
             display: flex;
@@ -245,7 +242,6 @@
             padding: 6px 4px !important;
         }
 
-        /* Mobile Adjustments */
         @media (max-width: 768px) {
             #sidebar {
                 width: 100%;
@@ -291,7 +287,7 @@
 <div id="sidebar">
     <div class="app-branding-header">
         <img src="favicon.png" alt="App Icon" onerror="this.style.display='none'">
-        <h2>Devesh Chat Pro</h2>
+        <h2>Voxa</h2>
     </div>
 
     <div class="list-section-title">Global Room</div>
@@ -353,7 +349,7 @@
     <button id="editBtn" onclick="editMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">✏️ Edit</button>
     <button onclick="copyMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">📋 Copy</button>
     <button onclick="pinMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">📌 Pin</button>
-    <button onclick="reactMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">😂 React</button>
+    <button onclick="reactMessage(event)" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">😂 React</button>
     <button id="deleteBtn" onclick="deleteMessage()" style="width:100%; text-align:left; background:#f44336; color:white; border:none; padding:8px; cursor:pointer; border-radius:4px; margin-top:4px;">🗑️ Delete</button>
 </div>
 
@@ -363,6 +359,7 @@
     <span onclick="addReaction('😂')" style="cursor:pointer; padding:4px; font-size:20px;">😂</span>
     <span onclick="addReaction('😮')" style="cursor:pointer; padding:4px; font-size:20px;">😮</span>
     <span onclick="addReaction('😢')" style="cursor:pointer; padding:4px; font-size:20px;">😢</span>
+    <span onclick="addReaction('😡')" style="cursor:pointer; padding:4px; font-size:20px;">😡</span>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -538,18 +535,23 @@ function unpinMessage(){
     closeAllMenus();
 }
 
-function reactMessage(){
+function reactMessage(event){
+    if(event) event.stopPropagation();
+
     const menu = document.getElementById("messageMenu");
     const picker = document.getElementById("emojiPicker");
-    
+
     picker.style.display = "block";
     picker.style.left = menu.style.left;
     picker.style.top = (parseInt(menu.style.top) - 45) + "px";
+
     menu.style.display = "none";
 }
 
 window.addReaction = function(emoji) {
-    socket.emit("reaction", { messageId: selectedMessage.id, emoji });
+    if(selectedMessage) {
+        socket.emit("reaction", { messageId: selectedMessage.id, emoji });
+    }
     closeAllMenus();
 }
 
@@ -599,7 +601,7 @@ document.getElementById("fileInput").addEventListener("change", async function()
 
     try {
         const res = await fetch("/upload", { method:"POST", body:formData });
-        if (!res.ok) throw new Error("Server responded with 500 or crash html");
+        if (!res.ok) throw new Error("Upload response failed");
         
         const data = await res.json();
         socket.emit("chat message", {
@@ -608,8 +610,8 @@ document.getElementById("fileInput").addEventListener("change", async function()
             time: Date.now()
         });
     } catch(err) { 
-        console.error("Upload error caught safely: ", err); 
-        alert("This feature is activating soon in next update !");
+        console.error("Upload error: ", err); 
+        alert("Upload Failed! Make sure public/uploads folder is accessible on server.");
     }
 });
 
@@ -626,7 +628,7 @@ async function sendVoice(){
 
     try {
         const res = await fetch("/upload", { method:"POST", body:formData });
-        if (!res.ok) throw new Error("Server status code is not 200");
+        if (!res.ok) throw new Error("Voice upload response failed");
         
         const data = await res.json();
         socket.emit("chat message", {
@@ -636,13 +638,23 @@ async function sendVoice(){
         });
         deleteVoice();
     } catch(err) { 
-        console.error("Voice Upload error caught safely: ", err);
-        alert("This feature is activating soon in next update !");
+        console.error("Voice Upload error: ", err);
+        alert("Voice Upload Failed!");
     }
 }
 
 function formatTime(time){
     return new Date(time).toLocaleTimeString([],{ hour:"2-digit", minute:"2-digit" });
+}
+
+function renderReactions(box, reactions) {
+    if(!box) return;
+    box.innerHTML = "";
+    if(!reactions) return;
+    for(const emoji in reactions){
+        const count = reactions[emoji].length;
+        if(count > 0) box.innerHTML += `<span style="background:rgba(0,0,0,0.2); padding:2px 6px; border-radius:10px; font-size:12px; margin-right:4px;">${emoji} ${count}</span>`;
+    }
 }
 
 function createMessageHTML(data) {
@@ -758,6 +770,9 @@ socket.on("chat message", data => {
     
     setupMessageEvents(div, data);
 
+    const box = div.querySelector(".reactions");
+    renderReactions(box, data.reactions);
+
     document.getElementById("chat").appendChild(div);
     div.scrollIntoView();
 });
@@ -789,12 +804,7 @@ socket.on("reaction update", (data) => {
     const msg = document.querySelector(`[data-id="${data.messageId}"]`);
     if(!msg) return;
     const box = msg.querySelector(".reactions");
-    if(!box) return;
-    box.innerHTML = "";
-    for(const emoji in data.reactions){
-        const count = data.reactions[emoji].length;
-        if(count > 0) box.innerHTML += `<span style="background:rgba(0,0,0,0.2); padding:2px 6px; border-radius:10px; font-size:12px;">${emoji} ${count}</span>`;
-    }
+    renderReactions(box, data.reactions);
 });
 
 socket.on("edit message", (data) => {
@@ -817,6 +827,10 @@ socket.on("chat history", (messages) => {
         div.className = "message " + (data.user === username ? "mine" : "other");
         div.innerHTML = createMessageHTML(data);
         setupMessageEvents(div, data);
+        
+        const box = div.querySelector(".reactions");
+        renderReactions(box, data.reactions);
+        
         chat.appendChild(div);
     });
     chat.scrollTop = chat.scrollHeight;
