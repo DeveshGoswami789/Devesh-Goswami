@@ -185,6 +185,7 @@
             word-wrap: break-word;
             position: relative;
             box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+            transition: background-color 0.5s ease, color 0.5s ease;
         }
         .mine { 
             align-self: flex-end; 
@@ -198,6 +199,23 @@
             color: var(--text-main);
             border-top-left-radius: 0;
         }
+
+        /* Message Highlight Animation */
+        @keyframes highlightBlink {
+            0% { background-color: #00a884; color: white; }
+            30% { background-color: #00a884; color: white; }
+            100% { background-color: var(--msg-bg-target); color: var(--text-main); }
+        }
+
+        .blink-highlight {
+            --msg-bg-target: var(--msg-other);
+            animation: highlightBlink 2.5s ease-out;
+        }
+
+        .mine.blink-highlight {
+            --msg-bg-target: var(--msg-mine);
+        }
+
         .name { font-size: 12px; font-weight: bold; margin-bottom: 3px; color: #00a884; }
         .time { font-size: 10px; opacity: .6; text-align: right; margin-top: 4px; }
         .system { color: var(--text-sub); text-align: center; margin: 12px 0; font-size: 13px; }
@@ -280,6 +298,29 @@
         .voiceMessage { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.1); padding: 8px 12px; border-radius: 8px; margin-top: 5px; width: 220px; }
         .voiceMessage button { width: 32px; height: 32px; padding: 0; border-radius: 50%; font-size: 14px; flex-shrink: 0; }
         .voiceWave { flex: 1; font-size: 14px; color: #00a884; overflow: hidden; white-space: nowrap; letter-spacing: 1px;}
+
+        /* Typing Indicator Animation CSS */
+        .typing-dots {
+            display: inline-flex;
+            gap: 3px;
+            align-items: center;
+            margin-left: 4px;
+        }
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-sub);
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounceDots 1.4s infinite ease-in-out both;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounceDots {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
     </style>
 </head>
 <body>
@@ -317,13 +358,13 @@
         </div>
     </div>
 
-    <div id="pinnedMessage" style="display:none; background:var(--bg-header); padding:10px; text-align:center; border-bottom:2px solid #00a884; z-index: 5;">
+    <div id="pinnedMessage" style="display:none; background:var(--bg-header); padding:10px; text-align:center; border-bottom:2px solid #00a884; z-index: 5; cursor:pointer;" onclick="scrollToAndHighlightMessage(this.dataset.pinnedId)">
         📌 <span id="pinnedText"></span>
-        <button onclick="unpinMessage()" style="margin-left:10px; padding:4px 8px;">❌</button>
+        <button onclick="event.stopPropagation(); unpinMessage()" style="margin-left:10px; padding:4px 8px;">❌</button>
     </div>
 
     <div id="chat"></div>
-    <div id="typing" style="padding:5px 20px; color:var(--text-sub); font-style:italic; height:20px; font-size:13px;"></div>
+    <div id="typing" style="padding:5px 20px; color:var(--text-sub); font-style:italic; height:25px; font-size:13px; display:flex; align-items:center;"></div>
 
     <div id="replyBox" style="display:none; padding:8px 15px; background:var(--bg-header); border-left:4px solid #00a884; display: flex; justify-content: space-between; align-items: center;">
         <div id="replyText"></div>
@@ -372,6 +413,7 @@ const socket = io();
 
 let currentChatTarget = "global"; 
 let replyTo = null;
+let replyToId = null;
 let currentTheme = "dark";
 let selectedMessage = null;
 let selectedDiv = null;
@@ -526,7 +568,9 @@ function copyMessage(){
 }
 
 function pinMessage(){
-    if(selectedMessage && selectedMessage.text) socket.emit("pin message", selectedMessage.text);
+    if(selectedMessage) {
+        socket.emit("pin message", { text: selectedMessage.text || "📷 Media/Audio", id: selectedMessage.id });
+    }
     closeAllMenus();
 }
 
@@ -560,14 +604,16 @@ function deleteMessage(){
     closeAllMenus();
 }
 
-function setReply(text){
+function setReply(text, messageId){
     replyTo = text;
+    replyToId = messageId;
     document.getElementById("replyText").textContent = "Replying to: " + text;
     document.getElementById("replyBox").style.display = "flex";
 }
 
 function cancelReply(){
     replyTo = null;
+    replyToId = null;
     document.getElementById("replyBox").style.display = "none";
 }
 
@@ -578,7 +624,8 @@ function sendMessage() {
             id: Date.now() + Math.random(),
             text: input.value,
             time: Date.now(),
-            reply: replyTo
+            reply: replyTo,
+            replyId: replyToId
         });
         cancelReply();
         input.value = "";
@@ -647,6 +694,20 @@ function formatTime(time){
     return new Date(time).toLocaleTimeString([],{ hour:"2-digit", minute:"2-digit" });
 }
 
+function scrollToAndHighlightMessage(messageId) {
+    if (!messageId) return;
+    const targetMsgEl = document.querySelector(`[data-id="${messageId}"]`);
+    if (targetMsgEl) {
+        targetMsgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetMsgEl.classList.add('blink-highlight');
+        setTimeout(() => {
+            targetMsgEl.classList.remove('blink-highlight');
+        }, 2500);
+    } else {
+        alert("Original message not found in this history view!");
+    }
+}
+
 function renderReactions(box, reactions) {
     if(!box) return;
     box.innerHTML = "";
@@ -658,8 +719,12 @@ function renderReactions(box, reactions) {
 }
 
 function createMessageHTML(data) {
+    const replyHeader = data.reply ? 
+        `<div class="reply-trigger" onclick="scrollToAndHighlightMessage('${data.replyId || ''}')" style="font-size:12px; color:#00a884; border-left:3px solid #00a884; padding-left:5px; margin-bottom:5px; cursor:pointer; background:rgba(0,0,0,0.1); padding:4px; border-radius:0 4px 4px 0;">${data.reply}</div>` 
+        : "";
+
     return `
-        ${data.reply ? `<div style="font-size:12px; color:#00a884; border-left:3px solid #00a884; padding-left:5px; margin-bottom:5px;">${data.reply}</div>` : ""}
+        ${replyHeader}
         <div class="name">${data.user}</div>
         ${data.text ? `<div class="messageText">${data.text}</div>` : ""}
         ${data.image ? `<img src="${data.image}" style="max-width:100%; border-radius:8px; margin-top:5px;">` : ""}
@@ -709,7 +774,7 @@ function setupMessageEvents(div, data) {
         let endX = e.changedTouches[0].clientX;
         if(endX - startX > 60) { 
             const textToReply = data.text || (data.image ? "📷 Photo" : "🎤 Voice Note");
-            setReply(data.user + ": " + textToReply); 
+            setReply(data.user + ": " + textToReply, data.id); 
         }
     });
 
@@ -731,7 +796,7 @@ function setupMessageEvents(div, data) {
     
     div.addEventListener("dblclick", () => { 
         const textToReply = data.text || (data.image ? "📷 Photo" : "🎤 Voice Note");
-        setReply(data.user + ": " + textToReply); 
+        setReply(data.user + ": " + textToReply, data.id); 
     });
 }
 
@@ -789,9 +854,9 @@ socket.on("system", msg => {
 
 socket.on("typing", user => {
     const typing = document.getElementById("typing");
-    typing.textContent = user + " is typing...";
+    typing.innerHTML = `${user} is typing <div class="typing-dots"><span></span><span></span><span></span></div>`;
     clearTimeout(typing.timeout);
-    typing.timeout = setTimeout(() => { typing.textContent = ""; }, 1500);
+    typing.timeout = setTimeout(() => { typing.innerHTML = ""; }, 1500);
 });
 
 socket.on("delete message", (id) => { const msg = document.querySelector(`[data-id="${id}"]`); if(msg) msg.remove(); });
@@ -812,8 +877,12 @@ socket.on("edit message", (data) => {
     if(msg && msg.querySelector(".messageText")) msg.querySelector(".messageText").textContent = data.text + " (edited)";
 });
 
-socket.on("pin message", (text) => {
-    document.getElementById("pinnedText").textContent = text;
+socket.on("pin message", (data) => {
+    const pinnedText = (data && typeof data === 'object') ? data.text : data;
+    const pinnedId = (data && typeof data === 'object') ? data.id : '';
+
+    document.getElementById("pinnedText").textContent = pinnedText;
+    document.getElementById("pinnedMessage").dataset.pinnedId = pinnedId;
     document.getElementById("pinnedMessage").style.display = "block";
 });
 socket.on("unpin message", () => { document.getElementById("pinnedMessage").style.display = "none"; });

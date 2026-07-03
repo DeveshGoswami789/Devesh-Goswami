@@ -171,9 +171,25 @@ io.on("connection", (socket) => {
         io.to(socket.currentRoom).emit("edit message", data);
     });
 
-    socket.on("pin message", (text) => {
-        pinnedMessages[socket.currentRoom] = text;
-        io.to(socket.currentRoom).emit("pin message", text);
+    socket.on("pin message", (data) => {
+        let pinPayload = { text: "", id: "" };
+        
+        if (data && typeof data === 'object') {
+            pinPayload.text = data.text;
+            pinPayload.id = data.id;
+        } else {
+            pinPayload.text = data;
+            let msgTarget = null;
+            if (socket.currentRoom === "global") {
+                msgTarget = globalHistory.find(m => m.text === data);
+            } else if (dmHistories[socket.currentRoom]) {
+                msgTarget = dmHistories[socket.currentRoom].find(m => m.text === data);
+            }
+            if (msgTarget) pinPayload.id = msgTarget.id;
+        }
+
+        pinnedMessages[socket.currentRoom] = pinPayload;
+        io.to(socket.currentRoom).emit("pin message", pinPayload);
     });
     
     socket.on("unpin message", () => {

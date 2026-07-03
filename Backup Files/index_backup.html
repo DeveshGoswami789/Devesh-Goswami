@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/png" href="favicon.png">
-    <title>Devesh Chat Pro</title>
+    <title>Voxa</title>
     <style>
-        /* CSS Variables for Full-Screen Dark/Light Theme Switching */
         :root {
             --bg-body: #111b21;
             --bg-sidebar: #111b21;
@@ -52,7 +51,6 @@
             transition: background 0.3s, color 0.3s;
         }
         
-        /* Sidebar Layout */
         #sidebar {
             width: 340px;
             background: var(--bg-sidebar);
@@ -83,7 +81,6 @@
             font-weight: 600;
         }
 
-        /* Main Chat Window Layout */
         #mainChat {
             flex: 1;
             display: flex;
@@ -188,6 +185,7 @@
             word-wrap: break-word;
             position: relative;
             box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+            transition: background-color 0.5s ease, color 0.5s ease;
         }
         .mine { 
             align-self: flex-end; 
@@ -201,11 +199,27 @@
             color: var(--text-main);
             border-top-left-radius: 0;
         }
+
+        /* Message Highlight Animation */
+        @keyframes highlightBlink {
+            0% { background-color: #00a884; color: white; }
+            30% { background-color: #00a884; color: white; }
+            100% { background-color: var(--msg-bg-target); color: var(--text-main); }
+        }
+
+        .blink-highlight {
+            --msg-bg-target: var(--msg-other);
+            animation: highlightBlink 2.5s ease-out;
+        }
+
+        .mine.blink-highlight {
+            --msg-bg-target: var(--msg-mine);
+        }
+
         .name { font-size: 12px; font-weight: bold; margin-bottom: 3px; color: #00a884; }
         .time { font-size: 10px; opacity: .6; text-align: right; margin-top: 4px; }
         .system { color: var(--text-sub); text-align: center; margin: 12px 0; font-size: 13px; }
         
-        /* 🛠️ FIXED BOTTOM INPUT PANEL FOR SCREEN COMPLIANCE */
         #bottom { 
             display: flex; 
             align-items: center;
@@ -220,7 +234,7 @@
         }
         #bottom input { 
             flex: 1; 
-            min-width: 0; /* Prevents input from pushing buttons out of screen */
+            min-width: 0; 
             padding: 11px 14px; 
             border: none; 
             outline: none; 
@@ -237,7 +251,7 @@
             background: #00a884; 
             color: white; 
             font-weight: bold; 
-            flex-shrink: 0; /* Button will never shrink or get compressed */
+            flex-shrink: 0; 
         }
         .icon-btn {
             background: transparent !important;
@@ -246,7 +260,6 @@
             padding: 6px 4px !important;
         }
 
-        /* 📱 EXTREMELY STABLE MOBILE VIEW RULES */
         @media (max-width: 768px) {
             #sidebar {
                 width: 100%;
@@ -285,14 +298,37 @@
         .voiceMessage { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.1); padding: 8px 12px; border-radius: 8px; margin-top: 5px; width: 220px; }
         .voiceMessage button { width: 32px; height: 32px; padding: 0; border-radius: 50%; font-size: 14px; flex-shrink: 0; }
         .voiceWave { flex: 1; font-size: 14px; color: #00a884; overflow: hidden; white-space: nowrap; letter-spacing: 1px;}
+
+        /* Typing Indicator Animation CSS */
+        .typing-dots {
+            display: inline-flex;
+            gap: 3px;
+            align-items: center;
+            margin-left: 4px;
+        }
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-sub);
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounceDots 1.4s infinite ease-in-out both;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounceDots {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
     <div class="app-branding-header">
-        <img src="favicon.png" alt="App Icon" onerror="this.style.display='none'">
-        <h2>Devesh Chat Pro</h2>
+        <img src="favicon.png" alt="Voxa Logo" onerror="this.src='https://placehold.co/40?text=V'">
+        <h2>Voxa</h2>
     </div>
 
     <div class="list-section-title">Global Room</div>
@@ -322,13 +358,13 @@
         </div>
     </div>
 
-    <div id="pinnedMessage" style="display:none; background:var(--bg-header); padding:10px; text-align:center; border-bottom:2px solid #00a884; z-index: 5;">
+    <div id="pinnedMessage" style="display:none; background:var(--bg-header); padding:10px; text-align:center; border-bottom:2px solid #00a884; z-index: 5; cursor:pointer;" onclick="scrollToAndHighlightMessage(this.dataset.pinnedId)">
         📌 <span id="pinnedText"></span>
-        <button onclick="unpinMessage()" style="margin-left:10px; padding:4px 8px;">❌</button>
+        <button onclick="event.stopPropagation(); unpinMessage()" style="margin-left:10px; padding:4px 8px;">❌</button>
     </div>
 
     <div id="chat"></div>
-    <div id="typing" style="padding:5px 20px; color:var(--text-sub); font-style:italic; height:20px; font-size:13px;"></div>
+    <div id="typing" style="padding:5px 20px; color:var(--text-sub); font-style:italic; height:25px; font-size:13px; display:flex; align-items:center;"></div>
 
     <div id="replyBox" style="display:none; padding:8px 15px; background:var(--bg-header); border-left:4px solid #00a884; display: flex; justify-content: space-between; align-items: center;">
         <div id="replyText"></div>
@@ -354,7 +390,7 @@
     <button id="editBtn" onclick="editMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">✏️ Edit</button>
     <button onclick="copyMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">📋 Copy</button>
     <button onclick="pinMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">📌 Pin</button>
-    <button onclick="reactMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">😂 React</button>
+    <button onclick="reactMessage(event)" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">😂 React</button>
     <button id="deleteBtn" onclick="deleteMessage()" style="width:100%; text-align:left; background:#f44336; color:white; border:none; padding:8px; cursor:pointer; border-radius:4px; margin-top:4px;">🗑️ Delete</button>
 </div>
 
@@ -364,6 +400,7 @@
     <span onclick="addReaction('😂')" style="cursor:pointer; padding:4px; font-size:20px;">😂</span>
     <span onclick="addReaction('😮')" style="cursor:pointer; padding:4px; font-size:20px;">😮</span>
     <span onclick="addReaction('😢')" style="cursor:pointer; padding:4px; font-size:20px;">😢</span>
+    <span onclick="addReaction('😡')" style="cursor:pointer; padding:4px; font-size:20px;">😡</span>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -376,6 +413,7 @@ const socket = io();
 
 let currentChatTarget = "global"; 
 let replyTo = null;
+let replyToId = null;
 let currentTheme = "dark";
 let selectedMessage = null;
 let selectedDiv = null;
@@ -479,7 +517,6 @@ function toggleTheme(){
     closeAllMenus();
 }
 
-// Global window close handler for dynamic UI adjustments
 window.onclick = function(event) {
     if (!event.target.matches('#menuBtn')) {
         closeAllMenus();
@@ -498,7 +535,6 @@ function showMessageMenu(x, y){
     document.getElementById("deleteBtn").style.display = selectedMessage.user === username ? "block" : "none";
     
     menu.style.display = "block";
-    
     const menuWidth = menu.offsetWidth || 160;
     const menuHeight = menu.offsetHeight || 160;
 
@@ -532,7 +568,9 @@ function copyMessage(){
 }
 
 function pinMessage(){
-    if(selectedMessage && selectedMessage.text) socket.emit("pin message", selectedMessage.text);
+    if(selectedMessage) {
+        socket.emit("pin message", { text: selectedMessage.text || "📷 Media/Audio", id: selectedMessage.id });
+    }
     closeAllMenus();
 }
 
@@ -541,18 +579,23 @@ function unpinMessage(){
     closeAllMenus();
 }
 
-function reactMessage(){
+function reactMessage(event){
+    if(event) event.stopPropagation();
+
     const menu = document.getElementById("messageMenu");
     const picker = document.getElementById("emojiPicker");
-    
+
     picker.style.display = "block";
     picker.style.left = menu.style.left;
     picker.style.top = (parseInt(menu.style.top) - 45) + "px";
+
     menu.style.display = "none";
 }
 
 window.addReaction = function(emoji) {
-    socket.emit("reaction", { messageId: selectedMessage.id, emoji });
+    if(selectedMessage) {
+        socket.emit("reaction", { messageId: selectedMessage.id, emoji });
+    }
     closeAllMenus();
 }
 
@@ -561,14 +604,16 @@ function deleteMessage(){
     closeAllMenus();
 }
 
-function setReply(text){
+function setReply(text, messageId){
     replyTo = text;
+    replyToId = messageId;
     document.getElementById("replyText").textContent = "Replying to: " + text;
     document.getElementById("replyBox").style.display = "flex";
 }
 
 function cancelReply(){
     replyTo = null;
+    replyToId = null;
     document.getElementById("replyBox").style.display = "none";
 }
 
@@ -579,7 +624,8 @@ function sendMessage() {
             id: Date.now() + Math.random(),
             text: input.value,
             time: Date.now(),
-            reply: replyTo
+            reply: replyTo,
+            replyId: replyToId
         });
         cancelReply();
         input.value = "";
@@ -602,13 +648,18 @@ document.getElementById("fileInput").addEventListener("change", async function()
 
     try {
         const res = await fetch("/upload", { method:"POST", body:formData });
+        if (!res.ok) throw new Error("Upload response failed");
+        
         const data = await res.json();
         socket.emit("chat message", {
             id: Date.now() + Math.random(),
             image: data.url,
             time: Date.now()
         });
-    } catch(err) { console.error(err); }
+    } catch(err) { 
+        console.error("Upload error: ", err); 
+        alert("Upload Failed! Make sure public/uploads folder is accessible on server.");
+    }
 });
 
 function deleteVoice(){
@@ -624,6 +675,8 @@ async function sendVoice(){
 
     try {
         const res = await fetch("/upload", { method:"POST", body:formData });
+        if (!res.ok) throw new Error("Voice upload response failed");
+        
         const data = await res.json();
         socket.emit("chat message", {
             id: Date.now() + Math.random(),
@@ -631,16 +684,47 @@ async function sendVoice(){
             time: Date.now()
         });
         deleteVoice();
-    } catch(err) { console.error(err); }
+    } catch(err) { 
+        console.error("Voice Upload error: ", err);
+        alert("Voice Upload Failed!");
+    }
 }
 
 function formatTime(time){
     return new Date(time).toLocaleTimeString([],{ hour:"2-digit", minute:"2-digit" });
 }
 
+function scrollToAndHighlightMessage(messageId) {
+    if (!messageId) return;
+    const targetMsgEl = document.querySelector(`[data-id="${messageId}"]`);
+    if (targetMsgEl) {
+        targetMsgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetMsgEl.classList.add('blink-highlight');
+        setTimeout(() => {
+            targetMsgEl.classList.remove('blink-highlight');
+        }, 2500);
+    } else {
+        alert("Original message not found in this history view!");
+    }
+}
+
+function renderReactions(box, reactions) {
+    if(!box) return;
+    box.innerHTML = "";
+    if(!reactions) return;
+    for(const emoji in reactions){
+        const count = reactions[emoji].length;
+        if(count > 0) box.innerHTML += `<span style="background:rgba(0,0,0,0.2); padding:2px 6px; border-radius:10px; font-size:12px; margin-right:4px;">${emoji} ${count}</span>`;
+    }
+}
+
 function createMessageHTML(data) {
+    const replyHeader = data.reply ? 
+        `<div class="reply-trigger" onclick="scrollToAndHighlightMessage('${data.replyId || ''}')" style="font-size:12px; color:#00a884; border-left:3px solid #00a884; padding-left:5px; margin-bottom:5px; cursor:pointer; background:rgba(0,0,0,0.1); padding:4px; border-radius:0 4px 4px 0;">${data.reply}</div>` 
+        : "";
+
     return `
-        ${data.reply ? `<div style="font-size:12px; color:#00a884; border-left:3px solid #00a884; padding-left:5px; margin-bottom:5px;">${data.reply}</div>` : ""}
+        ${replyHeader}
         <div class="name">${data.user}</div>
         ${data.text ? `<div class="messageText">${data.text}</div>` : ""}
         ${data.image ? `<img src="${data.image}" style="max-width:100%; border-radius:8px; margin-top:5px;">` : ""}
@@ -690,7 +774,7 @@ function setupMessageEvents(div, data) {
         let endX = e.changedTouches[0].clientX;
         if(endX - startX > 60) { 
             const textToReply = data.text || (data.image ? "📷 Photo" : "🎤 Voice Note");
-            setReply(data.user + ": " + textToReply); 
+            setReply(data.user + ": " + textToReply, data.id); 
         }
     });
 
@@ -712,7 +796,7 @@ function setupMessageEvents(div, data) {
     
     div.addEventListener("dblclick", () => { 
         const textToReply = data.text || (data.image ? "📷 Photo" : "🎤 Voice Note");
-        setReply(data.user + ": " + textToReply); 
+        setReply(data.user + ": " + textToReply, data.id); 
     });
 }
 
@@ -751,6 +835,9 @@ socket.on("chat message", data => {
     
     setupMessageEvents(div, data);
 
+    const box = div.querySelector(".reactions");
+    renderReactions(box, data.reactions);
+
     document.getElementById("chat").appendChild(div);
     div.scrollIntoView();
 });
@@ -767,9 +854,9 @@ socket.on("system", msg => {
 
 socket.on("typing", user => {
     const typing = document.getElementById("typing");
-    typing.textContent = user + " is typing...";
+    typing.innerHTML = `${user} is typing <div class="typing-dots"><span></span><span></span><span></span></div>`;
     clearTimeout(typing.timeout);
-    typing.timeout = setTimeout(() => { typing.textContent = ""; }, 1500);
+    typing.timeout = setTimeout(() => { typing.innerHTML = ""; }, 1500);
 });
 
 socket.on("delete message", (id) => { const msg = document.querySelector(`[data-id="${id}"]`); if(msg) msg.remove(); });
@@ -782,12 +869,7 @@ socket.on("reaction update", (data) => {
     const msg = document.querySelector(`[data-id="${data.messageId}"]`);
     if(!msg) return;
     const box = msg.querySelector(".reactions");
-    if(!box) return;
-    box.innerHTML = "";
-    for(const emoji in data.reactions){
-        const count = data.reactions[emoji].length;
-        if(count > 0) box.innerHTML += `<span style="background:rgba(0,0,0,0.2); padding:2px 6px; border-radius:10px; font-size:12px;">${emoji} ${count}</span>`;
-    }
+    renderReactions(box, data.reactions);
 });
 
 socket.on("edit message", (data) => {
@@ -795,8 +877,12 @@ socket.on("edit message", (data) => {
     if(msg && msg.querySelector(".messageText")) msg.querySelector(".messageText").textContent = data.text + " (edited)";
 });
 
-socket.on("pin message", (text) => {
-    document.getElementById("pinnedText").textContent = text;
+socket.on("pin message", (data) => {
+    const pinnedText = (data && typeof data === 'object') ? data.text : data;
+    const pinnedId = (data && typeof data === 'object') ? data.id : '';
+
+    document.getElementById("pinnedText").textContent = pinnedText;
+    document.getElementById("pinnedMessage").dataset.pinnedId = pinnedId;
     document.getElementById("pinnedMessage").style.display = "block";
 });
 socket.on("unpin message", () => { document.getElementById("pinnedMessage").style.display = "none"; });
@@ -810,6 +896,10 @@ socket.on("chat history", (messages) => {
         div.className = "message " + (data.user === username ? "mine" : "other");
         div.innerHTML = createMessageHTML(data);
         setupMessageEvents(div, data);
+        
+        const box = div.querySelector(".reactions");
+        renderReactions(box, data.reactions);
+        
         chat.appendChild(div);
     });
     chat.scrollTop = chat.scrollHeight;

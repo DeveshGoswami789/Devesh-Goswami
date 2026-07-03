@@ -3,24 +3,40 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const multer = require("multer");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 
+// 📂 Public files serve karna
 app.use(express.static(path.join(__dirname, "public")));
+
+// 📂 Auto Create Uploads Directory if it doesn't exist (Render Storage Friendly)
+const uploadDir = path.join(__dirname, "public", "uploads");
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, "public/uploads"));
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname);
+        cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, '-'));
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB Limit for Render
+});
 
 app.post("/upload", upload.single("file"), (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
@@ -89,17 +105,16 @@ io.on("connection", (socket) => {
 
     socket.on("chat message", (data) => {
         data.user = socket.username;
+        data.reactions = {}; 
         
         if (socket.currentRoom === "global") {
             data.room = "global";
             globalHistory.push(data);
             io.to("global").emit("chat message", data);
         } else {
-            data.room = socket.currentRoom; // compound key like "A-B"
+            data.room = socket.currentRoom; 
             if (!dmHistories[socket.currentRoom]) dmHistories[socket.currentRoom] = [];
             dmHistories[socket.currentRoom].push(data);
-            
-            // CRITICAL FIX: Dono participants ko directly emit taaki sync instant ho
             io.to(socket.currentRoom).emit("chat message", data);
         }
     });
@@ -116,19 +131,65 @@ io.on("connection", (socket) => {
     });
 
     socket.on("reaction", (data) => {
-        io.to(socket.currentRoom).emit("reaction update", {
-            messageId: data.messageId,
-            reactions: { [data.emoji]: [socket.username] }
-        });
+        let msgTarget = null;
+        if (socket.currentRoom === "global") {
+            msgTarget = globalHistory.find(m => m.id == data.messageId);
+        } else {
+            if (dmHistories[socket.currentRoom]) {
+                msgTarget = dmHistories[socket.currentRoom].find(m => m.id == data.messageId);
+            }
+        }
+
+        if (msgTarget) {
+            if (!msgTarget.reactions) msgTarget.reactions = {};
+            if (!msgTarget.reactions[data.emoji]) {
+                msgTarget.reactions[data.emoji] = [];
+            }
+            
+            if (msgTarget.reactions[data.emoji].includes(socket.username)) {
+                msgTarget.reactions[data.emoji] = msgTarget.reactions[data.emoji].filter(u => u !== socket.username);
+            } else {
+                msgTarget.reactions[data.emoji].push(socket.username);
+            }
+            
+            io.to(socket.currentRoom).emit("reaction update", {
+                messageId: data.messageId,
+                reactions: msgTarget.reactions
+            });
+        }
     });
 
     socket.on("edit message", (data) => {
+        let msgTarget = null;
+        if (socket.currentRoom === "global") {
+            msgTarget = globalHistory.find(m => m.id == data.id);
+        } else if (dmHistories[socket.currentRoom]) {
+            msgTarget = dmHistories[socket.currentRoom].find(m => m.id == data.id);
+        }
+        if(msgTarget) msgTarget.text = data.text;
+
         io.to(socket.currentRoom).emit("edit message", data);
     });
 
-    socket.on("pin message", (text) => {
-        pinnedMessages[socket.currentRoom] = text;
-        io.to(socket.currentRoom).emit("pin message", text);
+    socket.on("pin message", (data) => {
+        let pinPayload = { text: "", id: "" };
+        
+        if (data && typeof data === 'object') {
+            pinPayload.text = data.text;
+            pinPayload.id = data.id;
+        } else {
+            pinPayload.text = data;
+            let msgTarget = null;
+            if (socket.currentRoom === "global") {
+                msgTarget = globalHistory.find(m => m.text === data);
+            } else if (dmHistories[socket.currentRoom]) {
+                msgTarget = dmHistories[socket.currentRoom].find(m => m.text === data);
+            }
+            if (msgTarget) pinPayload.id = msgTarget.id;
+        }
+
+        pinnedMessages[socket.currentRoom] = pinPayload;
+        io.to(socket.currentRoom).emit("pin message", pinPayload);
     });
     
     socket.on("unpin message", () => {
@@ -137,6 +198,11 @@ io.on("connection", (socket) => {
     });
 
     socket.on("delete message", (id) => {
+        if (socket.currentRoom === "global") {
+            globalHistory = globalHistory.filter(m => m.id != id);
+        } else if (dmHistories[socket.currentRoom]) {
+            dmHistories[socket.currentRoom] = dmHistories[socket.currentRoom].filter(m => m.id != id);
+        }
         io.to(socket.currentRoom).emit("delete message", id);
     });
 
