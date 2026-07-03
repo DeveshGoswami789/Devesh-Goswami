@@ -452,6 +452,7 @@
             <div id="menu">
                 <button onclick="toggleTheme()">🌓 Theme Mode</button>
                 <button onclick="logout()">🚪 Logout</button>
+                <button onclick="contactUs()">📧 Contact us</button>
             </div>
         </div>
     </div>
@@ -858,6 +859,15 @@ function createMessageHTML(data) {
 function logout(){
     localStorage.removeItem("username");
     location.reload();
+}
+
+function contactUs() {
+    const email = "deveshgiri.goswami123@gmail.com";
+    const subject = encodeURIComponent("Voxa App Support / Feedback");
+    const body = encodeURIComponent("Hello Devesh,\n\n");
+    
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    closeAllMenus();
 }
 
 document.getElementById("recordBtn").addEventListener("click", async ()=>{
