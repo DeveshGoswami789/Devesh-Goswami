@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3000;
 // 📂 Public files serve karna
 app.use(express.static(path.join(__dirname, "public")));
 
-// 📂 Auto Create Uploads Directory if it doesn't exist (Render Storage Friendly)
+// 📂 Auto Create Uploads Directory if it doesn't exist
 const uploadDir = path.join(__dirname, "public", "uploads");
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -35,7 +35,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB Limit for Render
+    limits: { fileSize: 10 * 1024 * 1024 } 
 });
 
 app.post("/upload", upload.single("file"), (req, res) => {
@@ -50,6 +50,10 @@ let globalHistory = [];
 let dmHistories = {}; 
 let pinnedMessages = {}; 
 
+// 👑 CUSTOM ADMIN CONFIGURATION KEY
+// Bhai yahan tu "Devesh Goswami" ki jagah jo bhi naam rakhega, wahi secret admin ban jayega!
+const SECRET_ADMIN_KEY = "Devesh Goswami";
+
 function getDMKey(user1, user2) {
     return [user1, user2].sort().join("-");
 }
@@ -63,6 +67,22 @@ function broadcastUserLists() {
 
 io.on("connection", (socket) => {
     
+    // 🔒 USERNAME AVAILABILITY CHECK HANDLER
+    socket.on("check username", (requestedName, callback) => {
+        const nameLower = requestedName.trim().toLowerCase();
+        
+        // Check if username is already in use by any online socket connection
+        const isTaken = Object.values(onlineUsers).some(
+            existingUser => existingUser.toLowerCase() === nameLower
+        );
+        
+        if (isTaken) {
+            callback({ available: false });
+        } else {
+            callback({ available: true });
+        }
+    });
+
     socket.on("new user", (username) => {
         socket.username = username;
         socket.currentRoom = "global";
@@ -204,6 +224,45 @@ io.on("connection", (socket) => {
             dmHistories[socket.currentRoom] = dmHistories[socket.currentRoom].filter(m => m.id != id);
         }
         io.to(socket.currentRoom).emit("delete message", id);
+    });
+
+    // 📢 ADMIN FEATURE: Broadcast Alert Event
+    socket.on("send broadcast alert", (alertText) => {
+        if (socket.username === SECRET_ADMIN_KEY) {
+            io.emit("receive broadcast alert", alertText);
+        }
+    });
+
+    // 👥 ADMIN FEATURE: Active Users Details Event
+    socket.on("get active users list", () => {
+        if (socket.username === SECRET_ADMIN_KEY) {
+            const list = Object.keys(onlineUsers).map(id => ({
+                username: onlineUsers[id],
+                socketId: id
+            }));
+            socket.emit("active users list res", list);
+        }
+    });
+
+    // 🧹 ADMIN FEATURE: Purge Chats (Delete everything)
+    socket.on("purge all chats", () => {
+        if (socket.username === SECRET_ADMIN_KEY) {
+            globalHistory = [];
+            dmHistories = {};
+            pinnedMessages = {};
+            io.emit("chats purged");
+        }
+    });
+
+    // 🛡️ ADMIN FEATURE: Force Delete Message Moderation
+    socket.on("admin delete message", (id) => {
+        if (socket.username === SECRET_ADMIN_KEY) {
+            globalHistory = globalHistory.filter(m => m.id != id);
+            for (let roomKey in dmHistories) {
+                dmHistories[roomKey] = dmHistories[roomKey].filter(m => m.id != id);
+            }
+            io.to(socket.currentRoom).emit("delete message", id);
+        }
     });
 
     socket.on("disconnect", () => {

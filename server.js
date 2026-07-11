@@ -19,10 +19,25 @@ const PORT = process.env.PORT || 3000;
 // 📂 Public files serve karna
 app.use(express.static(path.join(__dirname, "public")));
 
-// 📂 Auto Create Uploads Directory if it doesn't exist
+// 📂 Auto Create Uploads Directory if it doesn't exist (Render Storage Friendly)
 const uploadDir = path.join(__dirname, "public", "uploads");
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// 🔐 File-Based Database logic for User Authentication
+const usersFile = path.join(__dirname, "users.json");
+let dbUsers = {}; // Stores { username: password }
+if (fs.existsSync(usersFile)) {
+    try {
+        dbUsers = JSON.parse(fs.readFileSync(usersFile, "utf8"));
+    } catch(e) {
+        dbUsers = {};
+    }
+}
+
+function saveUsersToDB() {
+    fs.writeFileSync(usersFile, JSON.stringify(dbUsers, null, 2), "utf8");
 }
 
 const storage = multer.diskStorage({
@@ -35,7 +50,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 } 
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB Limit for Render
 });
 
 app.post("/upload", upload.single("file"), (req, res) => {
@@ -45,14 +60,10 @@ app.post("/upload", upload.single("file"), (req, res) => {
 });
 
 let onlineUsers = {}; 
-let allVisitedUsers = new Set(); 
+let allVisitedUsers = new Set(Object.keys(dbUsers)); 
 let globalHistory = []; 
 let dmHistories = {}; 
 let pinnedMessages = {}; 
-
-// 👑 CUSTOM ADMIN CONFIGURATION KEY
-// Bhai yahan tu "Devesh Goswami" ki jagah jo bhi naam rakhega, wahi secret admin ban jayega!
-const SECRET_ADMIN_KEY = "Devesh Goswami";
 
 function getDMKey(user1, user2) {
     return [user1, user2].sort().join("-");
@@ -67,23 +78,36 @@ function broadcastUserLists() {
 
 io.on("connection", (socket) => {
     
-    // 🔒 USERNAME AVAILABILITY CHECK HANDLER
-    socket.on("check username", (requestedName, callback) => {
-        const nameLower = requestedName.trim().toLowerCase();
+    // 🛡️ Auth Logic Handler
+    socket.on("auth user", (data) => {
+        const { username, password, isLogin } = data;
         
-        // Check if username is already in use by any online socket connection
-        const isTaken = Object.values(onlineUsers).some(
-            existingUser => existingUser.toLowerCase() === nameLower
-        );
-        
-        if (isTaken) {
-            callback({ available: false });
+        if (!username || !password) {
+            socket.emit("auth response", { success: false, message: "Username & Password are required!" });
+            return;
+        }
+
+        if (isLogin) {
+            // Login Logic
+            if (dbUsers[username] && dbUsers[username] === password) {
+                proceedUserSession(socket, username, password);
+            } else {
+                socket.emit("auth response", { success: false, message: "Wrong username or password!" });
+            }
         } else {
-            callback({ available: true });
+            // Signup Logic
+            if (dbUsers[username]) {
+                socket.emit("auth response", { success: false, message: "Username already exists!" });
+            } else {
+                dbUsers[username] = password;
+                saveUsersToDB();
+                allVisitedUsers.add(username);
+                proceedUserSession(socket, username, password);
+            }
         }
     });
 
-    socket.on("new user", (username) => {
+    function proceedUserSession(socket, username, password) {
         socket.username = username;
         socket.currentRoom = "global";
         socket.join("global");
@@ -91,6 +115,7 @@ io.on("connection", (socket) => {
         onlineUsers[socket.id] = username;
         allVisitedUsers.add(username);
         
+        socket.emit("auth response", { success: true, username: username, password: password });
         socket.to("global").emit("system", `${username} joined the chat`);
         broadcastUserLists();
         
@@ -98,9 +123,39 @@ io.on("connection", (socket) => {
         if (pinnedMessages["global"]) {
             socket.emit("pin message", pinnedMessages["global"]);
         }
+    }
+
+    // 👤 Realtime Profile Edit Handler
+    socket.on("update profile", (data) => {
+        const { oldName, newName, newPassword } = data;
+        if (!socket.username || socket.username !== oldName) return;
+
+        if (newName !== oldName && dbUsers[newName]) {
+            socket.emit("profile response", { success: false, message: "This username is already taken!" });
+            return;
+        }
+
+        const passwordToSave = newPassword ? newPassword : dbUsers[oldName];
+
+        if (newName !== oldName) {
+            dbUsers[newName] = passwordToSave;
+            delete dbUsers[oldName];
+            allVisitedUsers.delete(oldName);
+            allVisitedUsers.add(newName);
+            
+            onlineUsers[socket.id] = newName;
+            socket.username = newName;
+        } else {
+            dbUsers[oldName] = passwordToSave;
+        }
+
+        saveUsersToDB();
+        socket.emit("profile response", { success: true, username: newName, password: passwordToSave });
+        broadcastUserLists();
     });
 
     socket.on("switch room", (target) => {
+        if (!socket.username) return;
         socket.leave(socket.currentRoom);
         
         if (target === "global") {
@@ -124,6 +179,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("chat message", (data) => {
+        if (!socket.username) return;
         data.user = socket.username;
         data.reactions = {}; 
         
@@ -224,45 +280,6 @@ io.on("connection", (socket) => {
             dmHistories[socket.currentRoom] = dmHistories[socket.currentRoom].filter(m => m.id != id);
         }
         io.to(socket.currentRoom).emit("delete message", id);
-    });
-
-    // 📢 ADMIN FEATURE: Broadcast Alert Event
-    socket.on("send broadcast alert", (alertText) => {
-        if (socket.username === SECRET_ADMIN_KEY) {
-            io.emit("receive broadcast alert", alertText);
-        }
-    });
-
-    // 👥 ADMIN FEATURE: Active Users Details Event
-    socket.on("get active users list", () => {
-        if (socket.username === SECRET_ADMIN_KEY) {
-            const list = Object.keys(onlineUsers).map(id => ({
-                username: onlineUsers[id],
-                socketId: id
-            }));
-            socket.emit("active users list res", list);
-        }
-    });
-
-    // 🧹 ADMIN FEATURE: Purge Chats (Delete everything)
-    socket.on("purge all chats", () => {
-        if (socket.username === SECRET_ADMIN_KEY) {
-            globalHistory = [];
-            dmHistories = {};
-            pinnedMessages = {};
-            io.emit("chats purged");
-        }
-    });
-
-    // 🛡️ ADMIN FEATURE: Force Delete Message Moderation
-    socket.on("admin delete message", (id) => {
-        if (socket.username === SECRET_ADMIN_KEY) {
-            globalHistory = globalHistory.filter(m => m.id != id);
-            for (let roomKey in dmHistories) {
-                dmHistories[roomKey] = dmHistories[roomKey].filter(m => m.id != id);
-            }
-            io.to(socket.currentRoom).emit("delete message", id);
-        }
     });
 
     socket.on("disconnect", () => {
