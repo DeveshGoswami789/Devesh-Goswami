@@ -92,6 +92,7 @@
             border-radius: 0px;  
             margin-bottom: 20px;
             filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+            cursor: pointer;
         }
 
         .splash-title {
@@ -180,6 +181,7 @@
             height: 34px;
             border-radius: 50%;
             object-fit: cover;
+            cursor: pointer;
         }
         .app-branding-header h2 {
             font-size: 18px;
@@ -432,13 +434,44 @@
             0%, 80%, 100% { transform: scale(0); }
             40% { transform: scale(1.0); }
         }
+
+        /* 📞 Contact Us Style */
+        .contact-us-sidebar {
+            padding: 12px 16px;
+            background: var(--bg-header);
+            border-top: 1px solid var(--border-color);
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+        .contact-us-sidebar a {
+            color: #00a884;
+            text-decoration: none;
+        }
+
+        /* 👑 Admin Panel List Box Styling */
+        #adminUsersList {
+            max-height: 180px;
+            overflow-y: auto;
+            background: var(--bg-body);
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 10px;
+            text-align: left;
+            font-size: 13px;
+        }
+        .admin-user-row {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
 
 <div id="splashScreen">
     <div class="splash-content">
-        <img src="logo.png" alt="Voxa Logo" class="splash-logo" onerror="this.src='favicon.png'">
+        <img src="logo.png" alt="Voxa Logo" class="splash-logo" onclick="handleLogoClick()" onerror="this.src='favicon.png'">
         <h1 class="splash-title">Voxa, connect freely</h1>
         <p class="splash-subtitle">Fast and realtime chat app by Devesh Goswami</p>
     </div>
@@ -471,9 +504,26 @@
     </div>
 </div>
 
+<div id="adminModal" class="voxa-modal" style="display: none;">
+    <div class="voxa-modal-container" style="max-width: 400px;">
+        <h3>👑 Voxa Admin Control</h3>
+        <button class="action-btn" style="background: #f44336; margin-bottom: 12px;" onclick="adminDeleteAllChats()">Delete All Chats</button>
+        
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 12px;">
+            <input type="text" id="adminAnnounceText" placeholder="Type global announcement...">
+            <button class="action-btn" style="background: #007bc4;" onclick="adminSendAnnouncement()">Broadcast Announcement</button>
+        </div>
+
+        <button class="action-btn" style="background: #555; margin-bottom: 10px;" onclick="adminSeeUsers()">See Users (Show Credentials)</button>
+        <div id="adminUsersList" style="display: none;"></div>
+
+        <button class="action-btn" style="background: #222; margin-top: 10px;" onclick="document.getElementById('adminModal').style.display='none'">Close Admin Panel</button>
+    </div>
+</div>
+
 <div id="sidebar">
     <div class="app-branding-header">
-        <img src="favicon.png" alt="Voxa Logo" onerror="this.src='favicon.png'">
+        <img src="favicon.png" alt="Voxa Logo" onclick="handleLogoClick()" onerror="this.src='favicon.png'">
         <h2>Voxa</h2>
     </div>
 
@@ -488,6 +538,12 @@
     
     <div class="list-section-title">All Chats (DMs)</div>
     <div id="usersListContainer" style="overflow-y: auto; flex: 1;"></div>
+
+    <div class="contact-us-sidebar">
+        <strong>📞 Contact Us:</strong><br>
+        Email: <a href="mailto:deveshgiri.goswami123@gmail.com">deveshgiri.goswami123@gmail.com</a><br>
+        Developer: Devesh Goswami
+    </div>
 </div>
 
 <div id="mainChat">
@@ -538,6 +594,7 @@
     <button onclick="copyMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">📋 Copy</button>
     <button onclick="pinMessage()" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">📌 Pin</button>
     <button onclick="reactMessage(event)" style="width:100%; text-align:left; background:transparent; color:var(--text-main); border:none; padding:8px; cursor:pointer;">😂 React</button>
+    <button id="adminDeleteBtn" onclick="adminDeleteSingleMessage()" style="display:none; width:100%; text-align:left; background:#ff9800; color:black; border:none; padding:8px; cursor:pointer; font-weight:bold; margin-top:4px; border-radius:4px;">🗑️ Delete as Admin</button>
     <button id="deleteBtn" onclick="deleteMessage()" style="width:100%; text-align:left; background:#f44336; color:white; border:none; padding:8px; cursor:pointer; border-radius:4px; margin-top:4px;">🗑️ Delete</button>
 </div>
 
@@ -574,6 +631,8 @@ let unreadCounts = {};
 let onlineUsersCache = [];
 let username = null;
 let isLoginMode = false; // Initial modal sequence tracks Signup first
+let logoClickCount = 0;
+let isAdminAuthenticated = false;
 
 // --- 🌟 ANIMATED SPLASH SCREEN ENGINE 🌟 ---
 window.addEventListener("DOMContentLoaded", () => {
@@ -599,6 +658,59 @@ function initAppUser() {
     } else {
         document.getElementById("authModal").style.display = "flex";
     }
+}
+
+// 👑 LOGO TRIPLE CLICK TRACER
+function handleLogoClick() {
+    logoClickCount++;
+    if(logoClickCount === 3) {
+        logoClickCount = 0;
+        const pass = prompt("Enter Admin Secure Password Key:");
+        if(pass === "Voxa@789") {
+            isAdminAuthenticated = true;
+            document.getElementById("adminModal").style.display = "flex";
+        } else if(pass !== null) {
+            alert("Unauthorized Admin Attempt rejected!");
+        }
+    }
+    // Auto reset click counts after 3 seconds
+    setTimeout(() => { logoClickCount = 0; }, 3000);
+}
+
+// 👑 ADMIN ACTIONS ENGINE
+function adminDeleteAllChats() {
+    if(!isAdminAuthenticated) return;
+    if(confirm("Are you absolute sure you want to purge and delete ALL CHATS on server? This can't be undone.")) {
+        socket.emit("admin delete all chats");
+        document.getElementById("adminModal").style.display = "none";
+    }
+}
+
+function adminSendAnnouncement() {
+    const text = document.getElementById("adminAnnounceText").value.trim();
+    if(!text) return;
+    socket.emit("admin broadcast announcement", text);
+    document.getElementById("adminAnnounceText").value = "";
+    document.getElementById("adminModal").style.display = "none";
+}
+
+function adminSeeUsers() {
+    socket.emit("admin get users credentials");
+}
+
+socket.on("admin users list response", (usersList) => {
+    const listContainer = document.getElementById("adminUsersList");
+    listContainer.innerHTML = "<h4>User Credentials DB:</h4>";
+    for(const user in usersList) {
+        listContainer.innerHTML += `<div class="admin-user-row">👤 <strong>${user}</strong> : 🔑 ${usersList[user]}</div>`;
+    }
+    listContainer.style.display = "block";
+});
+
+function adminDeleteSingleMessage() {
+    if(!isAdminAuthenticated || !selectedMessage) return;
+    socket.emit("admin delete single message", { id: selectedMessage.id, room: currentChatTarget });
+    closeAllMenus();
 }
 
 // 🛡️ Auth workflow triggers
@@ -764,6 +876,9 @@ function showMessageMenu(x, y){
     document.getElementById("editBtn").style.display = selectedMessage.user === username ? "block" : "none";
     document.getElementById("deleteBtn").style.display = selectedMessage.user === username ? "block" : "none";
     
+    // Toggle admin visibility button state
+    document.getElementById("adminDeleteBtn").style.display = isAdminAuthenticated ? "block" : "none";
+
     menu.style.display = "block";
     const menuWidth = menu.offsetWidth || 160;
     const menuHeight = menu.offsetHeight || 160;
@@ -1116,24 +1231,6 @@ socket.on("pin message", (data) => {
     document.getElementById("pinnedMessage").style.display = "block";
 });
 socket.on("unpin message", () => { document.getElementById("pinnedMessage").style.display = "none"; });
-
-socket.on("chat history", (messages) => {
-    const chat = document.getElementById("chat");
-    chat.innerHTML = "";
-    messages.forEach((data) => {
-        const div = document.createElement("div");
-        div.dataset.id = data.id;
-        div.className = "message " + (data.user === username ? "mine" : "other");
-        div.innerHTML = createMessageHTML(data);
-        setupMessageEvents(div, data);
-        
-        const box = div.querySelector(".reactions");
-        renderReactions(box, data.reactions);
-        
-        chat.appendChild(div);
-    });
-    chat.scrollTop = chat.scrollHeight;
-});
 </script>
 </body>
 </html>

@@ -16,16 +16,16 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// 📂 Public files serve karna
+// 唐 Public files serve karna
 app.use(express.static(path.join(__dirname, "public")));
 
-// 📂 Auto Create Uploads Directory if it doesn't exist (Render Storage Friendly)
+// 唐 Auto Create Uploads Directory if it doesn't exist (Render Storage Friendly)
 const uploadDir = path.join(__dirname, "public", "uploads");
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// 🔐 File-Based Database logic for User Authentication
+// 柏 File-Based Database logic for User Authentication
 const usersFile = path.join(__dirname, "users.json");
 let dbUsers = {}; // Stores { username: password }
 if (fs.existsSync(usersFile)) {
@@ -78,7 +78,7 @@ function broadcastUserLists() {
 
 io.on("connection", (socket) => {
     
-    // 🛡️ Auth Logic Handler
+    // 孱ｸAuth Logic Handler
     socket.on("auth user", (data) => {
         const { username, password, isLogin } = data;
         
@@ -125,7 +125,41 @@ io.on("connection", (socket) => {
         }
     }
 
-    // 👤 Realtime Profile Edit Handler
+    // 👑 ADMIN CONTROLS ENGINE LISTENERS
+    socket.on("admin delete all chats", () => {
+        globalHistory = [];
+        dmHistories = {};
+        pinnedMessages = {};
+        io.emit("chat history", []);
+        io.emit("unpin message");
+        io.emit("system", "👑 Admin has wiped all conversations history.");
+    });
+
+    socket.on("admin broadcast announcement", (msgText) => {
+        io.emit("system", `📢 ADMIN ANNOUNCEMENT: ${msgText}`);
+    });
+
+    socket.on("admin get users credentials", () => {
+        socket.emit("admin users list response", dbUsers);
+    });
+
+    socket.on("admin delete single message", (data) => {
+        const { id, room } = data;
+        if (room === "global") {
+            globalHistory = globalHistory.filter(m => m.id != id);
+            io.to("global").emit("delete message", id);
+        } else {
+            // Find active DM target key dynamically 
+            for (const key in dmHistories) {
+                if (key.includes(socket.username)) {
+                    dmHistories[key] = dmHistories[key].filter(m => m.id != id);
+                    io.to(key).emit("delete message", id);
+                }
+            }
+        }
+    });
+
+    // 側 Realtime Profile Edit Handler
     socket.on("update profile", (data) => {
         const { oldName, newName, newPassword } = data;
         if (!socket.username || socket.username !== oldName) return;
