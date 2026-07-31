@@ -47,7 +47,7 @@
             background: var(--bg-body);
             color: var(--text-main);
             display: flex;
-            height: 100vh;
+            height: 100dvh;
             width: 100vw;
             overflow: hidden;
             transition: background 0.3s, color 0.3s;
@@ -159,6 +159,7 @@
         
         #sidebar {
             width: 340px;
+            height: 100%;
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border-color);
             display: flex;
@@ -436,13 +437,15 @@
         }
 
         /* 📞 Contact Us Style */
-        .contact-us-sidebar {
-            padding: 12px 16px;
-            background: var(--bg-header);
-            border-top: 1px solid var(--border-color);
-            font-size: 13px;
-            color: var(--text-sub);
-        }
+.contact-us-sidebar {
+    padding: 12px 16px;
+    background: var(--bg-header);
+    border-top: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-sub);
+    flex-shrink: 0; /* 👈 Ye layout me ise dabne nahi dega */
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* 👈 Mobile ke bottom gesture bar se bachaega */
+}
         .contact-us-sidebar a {
             color: #00a884;
             text-decoration: none;
