@@ -166,6 +166,7 @@
             flex-direction: column;
             flex-shrink: 0;
             transition: background 0.3s;
+            overflow: hidden;
         }
         
         .app-branding-header {
@@ -443,8 +444,8 @@
     border-top: 1px solid var(--border-color);
     font-size: 13px;
     color: var(--text-sub);
-    flex-shrink: 0; /* 👈 Ye layout me ise dabne nahi dega */
-    padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* 👈 Mobile ke bottom gesture bar se bachaega */
+    flex-shrink: 0;
+    padding-bottom: 12px;
 }
         .contact-us-sidebar a {
             color: #00a884;
@@ -540,7 +541,7 @@
     </div>
     
     <div class="list-section-title">All Chats (DMs)</div>
-    <div id="usersListContainer" style="overflow-y: auto; flex: 1;"></div>
+    <div id="usersListContainer" style="flex:1; overflow-y:auto; min-height:0;"></div>
 
     <div class="contact-us-sidebar">
         <strong>📞 Contact Us:</strong><br>
