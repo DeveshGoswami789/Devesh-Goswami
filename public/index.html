@@ -741,8 +741,23 @@ socket.on("auth response", (res) => {
         localStorage.setItem("username", res.username);
         localStorage.setItem("password", res.password);
         document.getElementById("authModal").style.display = "none";
+
+        // Agar reconnect ke waqt user kisi DM room me tha, wapas usi room me le jao
+        if(currentChatTarget !== "global") {
+            socket.emit("switch room", currentChatTarget);
+        }
     } else {
         alert(res.message);
+    }
+});
+
+// 🔄 RECONNECT HANDLER: server sleep/restart ya net drop ke baad bhi
+// dubara login screen na dikhe — saved credentials se silently re-auth ho jaye.
+socket.on("connect", () => {
+    const savedUser = localStorage.getItem("username");
+    const savedPass = localStorage.getItem("password");
+    if(savedUser && savedPass) {
+        socket.emit("auth user", { username: savedUser, password: savedPass, isLogin: true });
     }
 });
 
@@ -1189,6 +1204,28 @@ socket.on("chat message", data => {
 
     document.getElementById("chat").appendChild(div);
     div.scrollIntoView();
+});
+
+// 📜 CHAT HISTORY RENDERER (pehle ye event sunna hi nahi tha, isliye
+// purani history kabhi screen par dikhti nahi thi — na global me, na DM me)
+socket.on("chat history", (history) => {
+    const chatBox = document.getElementById("chat");
+    chatBox.innerHTML = "";
+
+    (history || []).forEach(data => {
+        const div = document.createElement("div");
+        div.dataset.id = data.id;
+        div.className = "message " + (data.user === username ? "mine" : "other");
+        div.innerHTML = createMessageHTML(data);
+        setupMessageEvents(div, data);
+
+        const box = div.querySelector(".reactions");
+        renderReactions(box, data.reactions);
+
+        chatBox.appendChild(div);
+    });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
 });
 
 socket.on("system", msg => {
