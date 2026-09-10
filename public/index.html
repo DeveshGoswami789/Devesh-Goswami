@@ -469,7 +469,25 @@
             color: var(--text-main);
             word-break: break-all;
         }
-    </style>
+    
+/* ===== Other Creations ===== */
+.other-creations-modal{position:fixed;inset:0;z-index:60000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.62);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.other-creations-modal.hidden{display:none}
+.other-creations-box{width:min(520px,94vw);max-height:min(720px,88vh);overflow:auto;background:var(--modal-bg);border:1px solid var(--border-color);border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.38);animation:otherCreationsInVoxa .22s ease-out}
+@keyframes otherCreationsInVoxa{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.other-creations-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.other-creations-title{font-size:22px;font-weight:800;color:var(--text-main)}
+.other-creations-close{border:1px solid var(--border-color);background:var(--bg-item-hover);color:var(--text-main);width:36px;height:36px;border-radius:10px;font-size:25px;line-height:1;cursor:pointer}
+.other-creations-sub{margin:7px 0 18px;color:var(--text-sub);font-size:13px;line-height:1.5}
+.other-project-list{display:grid;gap:11px}
+.other-project-card{display:block;text-decoration:none;color:var(--text-main);background:var(--bg-item-hover);border:1px solid var(--border-color);border-radius:14px;padding:15px;transition:transform .16s ease,filter .16s ease}
+.other-project-card:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.other-project-name{font-weight:800;font-size:16px;margin-bottom:6px}
+.other-project-link{display:block;font-size:12px;color:#00a884;word-break:break-all}
+.other-creations-footer{margin-top:19px;padding-top:15px;border-top:1px solid var(--border-color);text-align:center;font-family:Georgia,'Times New Roman',serif;font-style:italic;color:var(--text-sub);font-size:13px;line-height:1.5}
+@media(max-width:520px){.other-creations-box{padding:18px;border-radius:16px}.other-creations-title{font-size:20px}.other-project-card{padding:13px}}
+
+</style>
 </head>
 <body>
 
@@ -558,6 +576,7 @@
         <div id="menuContainer">
             <button id="menuBtn" onclick="toggleMenu()">⋮</button>
             <div id="menu">
+                <button onclick="openOtherCreations()">🌐 Other Creations</button>
                 <button onclick="openProfileModal()">👤 Profile Settings</button>
                 <button onclick="toggleTheme()">🌓 Theme Mode</button>
                 <button onclick="logout()">🚪 Logout</button>
@@ -1272,6 +1291,43 @@ socket.on("pin message", (data) => {
     document.getElementById("pinnedMessage").style.display = "block";
 });
 socket.on("unpin message", () => { document.getElementById("pinnedMessage").style.display = "none"; });
+
+function openOtherCreations(){
+    closeAllMenus();
+    document.getElementById("otherCreationsModal")?.classList.remove("hidden");
+}
+function closeOtherCreations(){
+    document.getElementById("otherCreationsModal")?.classList.add("hidden");
+}
+document.addEventListener("click", function(event){
+    if(event.target && event.target.id === "otherCreationsModal") closeOtherCreations();
+});
+document.addEventListener("keydown", function(event){
+    if(event.key === "Escape") closeOtherCreations();
+});
+
 </script>
+
+<div id="otherCreationsModal" class="other-creations-modal hidden" aria-modal="true" role="dialog" aria-labelledby="otherCreationsTitle">
+    <div class="other-creations-box" onclick="event.stopPropagation()">
+        <div class="other-creations-head">
+            <div class="other-creations-title" id="otherCreationsTitle">Our Other Creations</div>
+            <button class="other-creations-close" aria-label="Close" onclick="closeOtherCreations()">×</button>
+        </div>
+        <div class="other-creations-sub">Explore more websites created by Devesh Goswami.</div>
+        <div class="other-project-list">
+            <a class="other-project-card" href="https://sports-scorer.onrender.com/" target="_blank" rel="noopener noreferrer">
+                <div class="other-project-name">🏏 Sports Scorer</div>
+                <span class="other-project-link">https://sports-scorer.onrender.com/</span>
+            </a>
+            <a class="other-project-card" href="https://devesh-goswami.onrender.com/" target="_blank" rel="noopener noreferrer">
+                <div class="other-project-name">💬 Voxa</div>
+                <span class="other-project-link">https://devesh-goswami.onrender.com/</span>
+            </a>
+        </div>
+        <div class="other-creations-footer">New creations coming soon if you continue to support us... <span>❤️</span></div>
+    </div>
+</div>
+
 </body>
 </html>
