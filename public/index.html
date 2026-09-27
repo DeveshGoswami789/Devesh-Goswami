@@ -487,6 +487,22 @@
 .other-creations-footer{margin-top:19px;padding-top:15px;border-top:1px solid var(--border-color);text-align:center;font-family:Georgia,'Times New Roman',serif;font-style:italic;color:var(--text-sub);font-size:13px;line-height:1.5}
 @media(max-width:520px){.other-creations-box{padding:18px;border-radius:16px}.other-creations-title{font-size:20px}.other-project-card{padding:13px}}
 
+
+/* ===== About Modal ===== */
+.voxa-about-modal{position:fixed;inset:0;z-index:61000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.70);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.voxa-about-modal.hidden{display:none}
+.voxa-about-box{width:min(560px,94vw);max-height:min(760px,88vh);overflow:auto;background:var(--bg-header);border:1px solid var(--border-color);border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+.voxa-about-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.voxa-about-title{font-size:23px;font-weight:800;color:var(--text-main)}
+.voxa-about-close{border:1px solid var(--border-color);background:var(--bg-item-hover);color:var(--text-main);width:36px;height:36px;border-radius:10px;font-size:24px;cursor:pointer}
+.voxa-about-sub{margin:7px 0 18px;color:var(--text-sub);font-size:13px;line-height:1.5}
+.voxa-about-section{padding:13px 0;border-top:1px solid var(--border-color)}
+.voxa-about-section h4{margin:0 0 6px;font-size:14px;color:var(--text-main)}
+.voxa-about-section p,.voxa-about-section li{color:var(--text-sub);font-size:13px;line-height:1.6}
+.voxa-about-section ul{margin:6px 0 0 18px}
+.voxa-about-version{display:inline-block;margin-top:6px;padding:5px 9px;border-radius:99px;background:rgba(0,168,132,.14);color:#00a884;font-size:11px;font-weight:800}
+@media(max-width:520px){.voxa-about-box{padding:18px}.voxa-about-title{font-size:20px}}
+
 </style>
 </head>
 <body>
@@ -577,6 +593,7 @@
             <button id="menuBtn" onclick="toggleMenu()">⋮</button>
             <div id="menu">
                 <button onclick="openOtherCreations()">🌐 Other Creations</button>
+                <button onclick="openVoxaAbout()">ℹ️ About</button>
                 <button onclick="openProfileModal()">👤 Profile Settings</button>
                 <button onclick="toggleTheme()">🌓 Theme Mode</button>
                 <button onclick="logout()">🚪 Logout</button>
@@ -1329,5 +1346,36 @@ document.addEventListener("keydown", function(event){
     </div>
 </div>
 
+
+<div id="voxaAboutModal" class="voxa-about-modal" style="display:none;" onclick="if(event.target===this)closeVoxaAbout()">
+  <div class="voxa-about-box" role="dialog" aria-modal="true" aria-labelledby="voxaAboutTitle">
+    <div class="voxa-about-head">
+      <div class="voxa-about-title" id="voxaAboutTitle">ℹ️ About Voxa</div>
+      <button class="voxa-about-close" onclick="closeVoxaAbout()" aria-label="Close About">×</button>
+    </div>
+    <div class="voxa-about-sub">A fast and realtime chat project created by Devesh Goswami.</div>
+    <div class="voxa-about-section"><h4>💬 About Voxa</h4><p>Voxa is a chat application designed to help people connect and communicate through realtime messaging.</p></div>
+    <div class="voxa-about-section"><h4>👨‍💻 About the Creator</h4><p>Hi, I’m Devesh Goswami, a student, the creator and developer of Voxa. I’m building Voxa as a simple and friendly place for online conversations.</p></div>
+    <div class="voxa-about-section"><h4>✨ Highlights</h4><ul><li>Global public chat</li><li>Direct messaging features</li><li>Profile and theme settings</li><li>Message interaction tools</li></ul></div>
+    <div class="voxa-about-section"><h4>🙏 Credits</h4><p>Thanks to the open-source tools, browser technologies and resources that support this project. Third-party credits can be expanded here whenever needed.</p></div>
+    <div class="voxa-about-section"><h4>🔖 Version</h4><span class="voxa-about-version">Version 14.7.3</span></div>
+    <div class="voxa-about-section"><h4>©️ Copyright</h4><p>Made with care by Devesh Goswami.</p></div>
+  </div>
+</div>
+
+<script>
+
+function openVoxaAbout(){
+  const menu=document.getElementById('menu');
+  if(menu)menu.style.display='none';
+  const modal=document.getElementById('voxaAboutModal');
+  if(modal)modal.style.display='flex';
+}
+function closeVoxaAbout(){
+  const modal=document.getElementById('voxaAboutModal');
+  if(modal)modal.style.display='none';
+}
+
+</script>
 </body>
 </html>
