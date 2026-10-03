@@ -47,7 +47,7 @@
             background: var(--bg-body);
             color: var(--text-main);
             display: flex;
-            height: 100vh;
+            height: 100dvh;
             width: 100vw;
             overflow: hidden;
             transition: background 0.3s, color 0.3s;
@@ -159,12 +159,14 @@
         
         #sidebar {
             width: 340px;
+            height: 100%;
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
             transition: background 0.3s;
+            overflow: hidden;
         }
         
         .app-branding-header {
@@ -436,13 +438,15 @@
         }
 
         /* 📞 Contact Us Style */
-        .contact-us-sidebar {
-            padding: 12px 16px;
-            background: var(--bg-header);
-            border-top: 1px solid var(--border-color);
-            font-size: 13px;
-            color: var(--text-sub);
-        }
+.contact-us-sidebar {
+    padding: 12px 16px;
+    background: var(--bg-header);
+    border-top: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-sub);
+    flex-shrink: 0;
+    padding-bottom: 12px;
+}
         .contact-us-sidebar a {
             color: #00a884;
             text-decoration: none;
@@ -465,7 +469,41 @@
             color: var(--text-main);
             word-break: break-all;
         }
-    </style>
+    
+/* ===== Other Creations ===== */
+.other-creations-modal{position:fixed;inset:0;z-index:60000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.62);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.other-creations-modal.hidden{display:none}
+.other-creations-box{width:min(520px,94vw);max-height:min(720px,88vh);overflow:auto;background:var(--modal-bg);border:1px solid var(--border-color);border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.38);animation:otherCreationsInVoxa .22s ease-out}
+@keyframes otherCreationsInVoxa{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.other-creations-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.other-creations-title{font-size:22px;font-weight:800;color:var(--text-main)}
+.other-creations-close{border:1px solid var(--border-color);background:var(--bg-item-hover);color:var(--text-main);width:36px;height:36px;border-radius:10px;font-size:25px;line-height:1;cursor:pointer}
+.other-creations-sub{margin:7px 0 18px;color:var(--text-sub);font-size:13px;line-height:1.5}
+.other-project-list{display:grid;gap:11px}
+.other-project-card{display:block;text-decoration:none;color:var(--text-main);background:var(--bg-item-hover);border:1px solid var(--border-color);border-radius:14px;padding:15px;transition:transform .16s ease,filter .16s ease}
+.other-project-card:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.other-project-name{font-weight:800;font-size:16px;margin-bottom:6px}
+.other-project-link{display:block;font-size:12px;color:#00a884;word-break:break-all}
+.other-creations-footer{margin-top:19px;padding-top:15px;border-top:1px solid var(--border-color);text-align:center;font-family:Georgia,'Times New Roman',serif;font-style:italic;color:var(--text-sub);font-size:13px;line-height:1.5}
+@media(max-width:520px){.other-creations-box{padding:18px;border-radius:16px}.other-creations-title{font-size:20px}.other-project-card{padding:13px}}
+
+
+/* ===== About Modal ===== */
+.voxa-about-modal{position:fixed;inset:0;z-index:61000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.70);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.voxa-about-modal.hidden{display:none}
+.voxa-about-box{width:min(560px,94vw);max-height:min(760px,88vh);overflow:auto;background:var(--bg-header);border:1px solid var(--border-color);border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+.voxa-about-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.voxa-about-title{font-size:23px;font-weight:800;color:var(--text-main)}
+.voxa-about-close{border:1px solid var(--border-color);background:var(--bg-item-hover);color:var(--text-main);width:36px;height:36px;border-radius:10px;font-size:24px;cursor:pointer}
+.voxa-about-sub{margin:7px 0 18px;color:var(--text-sub);font-size:13px;line-height:1.5}
+.voxa-about-section{padding:13px 0;border-top:1px solid var(--border-color)}
+.voxa-about-section h4{margin:0 0 6px;font-size:14px;color:var(--text-main)}
+.voxa-about-section p,.voxa-about-section li{color:var(--text-sub);font-size:13px;line-height:1.6}
+.voxa-about-section ul{margin:6px 0 0 18px}
+.voxa-about-version{display:inline-block;margin-top:6px;padding:5px 9px;border-radius:99px;background:rgba(0,168,132,.14);color:#00a884;font-size:11px;font-weight:800}
+@media(max-width:520px){.voxa-about-box{padding:18px}.voxa-about-title{font-size:20px}}
+
+</style>
 </head>
 <body>
 
@@ -537,7 +575,7 @@
     </div>
     
     <div class="list-section-title">All Chats (DMs)</div>
-    <div id="usersListContainer" style="overflow-y: auto; flex: 1;"></div>
+    <div id="usersListContainer" style="flex:1; overflow-y:auto; min-height:0;"></div>
 
     <div class="contact-us-sidebar">
         <strong>📞 Contact Us:</strong><br>
@@ -554,6 +592,8 @@
         <div id="menuContainer">
             <button id="menuBtn" onclick="toggleMenu()">⋮</button>
             <div id="menu">
+                <button onclick="openOtherCreations()">🌐 Other Creations</button>
+                <button onclick="openVoxaAbout()">ℹ️ About</button>
                 <button onclick="openProfileModal()">👤 Profile Settings</button>
                 <button onclick="toggleTheme()">🌓 Theme Mode</button>
                 <button onclick="logout()">🚪 Logout</button>
@@ -737,8 +777,23 @@ socket.on("auth response", (res) => {
         localStorage.setItem("username", res.username);
         localStorage.setItem("password", res.password);
         document.getElementById("authModal").style.display = "none";
+
+        // Agar reconnect ke waqt user kisi DM room me tha, wapas usi room me le jao
+        if(currentChatTarget !== "global") {
+            socket.emit("switch room", currentChatTarget);
+        }
     } else {
         alert(res.message);
+    }
+});
+
+// 🔄 RECONNECT HANDLER: server sleep/restart ya net drop ke baad bhi
+// dubara login screen na dikhe — saved credentials se silently re-auth ho jaye.
+socket.on("connect", () => {
+    const savedUser = localStorage.getItem("username");
+    const savedPass = localStorage.getItem("password");
+    if(savedUser && savedPass) {
+        socket.emit("auth user", { username: savedUser, password: savedPass, isLogin: true });
     }
 });
 
@@ -1187,6 +1242,28 @@ socket.on("chat message", data => {
     div.scrollIntoView();
 });
 
+// 📜 CHAT HISTORY RENDERER (pehle ye event sunna hi nahi tha, isliye
+// purani history kabhi screen par dikhti nahi thi — na global me, na DM me)
+socket.on("chat history", (history) => {
+    const chatBox = document.getElementById("chat");
+    chatBox.innerHTML = "";
+
+    (history || []).forEach(data => {
+        const div = document.createElement("div");
+        div.dataset.id = data.id;
+        div.className = "message " + (data.user === username ? "mine" : "other");
+        div.innerHTML = createMessageHTML(data);
+        setupMessageEvents(div, data);
+
+        const box = div.querySelector(".reactions");
+        renderReactions(box, data.reactions);
+
+        chatBox.appendChild(div);
+    });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
+
 socket.on("system", msg => {
     const div = document.createElement("div");
     div.className = "system";
@@ -1231,6 +1308,74 @@ socket.on("pin message", (data) => {
     document.getElementById("pinnedMessage").style.display = "block";
 });
 socket.on("unpin message", () => { document.getElementById("pinnedMessage").style.display = "none"; });
+
+function openOtherCreations(){
+    closeAllMenus();
+    document.getElementById("otherCreationsModal")?.classList.remove("hidden");
+}
+function closeOtherCreations(){
+    document.getElementById("otherCreationsModal")?.classList.add("hidden");
+}
+document.addEventListener("click", function(event){
+    if(event.target && event.target.id === "otherCreationsModal") closeOtherCreations();
+});
+document.addEventListener("keydown", function(event){
+    if(event.key === "Escape") closeOtherCreations();
+});
+
+</script>
+
+<div id="otherCreationsModal" class="other-creations-modal hidden" aria-modal="true" role="dialog" aria-labelledby="otherCreationsTitle">
+    <div class="other-creations-box" onclick="event.stopPropagation()">
+        <div class="other-creations-head">
+            <div class="other-creations-title" id="otherCreationsTitle">Our Other Creations</div>
+            <button class="other-creations-close" aria-label="Close" onclick="closeOtherCreations()">×</button>
+        </div>
+        <div class="other-creations-sub">Explore more websites created by Devesh Goswami.</div>
+        <div class="other-project-list">
+            <a class="other-project-card" href="https://sports-scorer.onrender.com/" target="_blank" rel="noopener noreferrer">
+                <div class="other-project-name">🏏 Sports Scorer</div>
+                <span class="other-project-link">https://sports-scorer.onrender.com/</span>
+            </a>
+            <a class="other-project-card" href="https://devesh-goswami.onrender.com/" target="_blank" rel="noopener noreferrer">
+                <div class="other-project-name">💬 Voxa</div>
+                <span class="other-project-link">https://devesh-goswami.onrender.com/</span>
+            </a>
+        </div>
+        <div class="other-creations-footer">New creations coming soon if you continue to support us... <span>❤️</span></div>
+    </div>
+</div>
+
+
+<div id="voxaAboutModal" class="voxa-about-modal" style="display:none;" onclick="if(event.target===this)closeVoxaAbout()">
+  <div class="voxa-about-box" role="dialog" aria-modal="true" aria-labelledby="voxaAboutTitle">
+    <div class="voxa-about-head">
+      <div class="voxa-about-title" id="voxaAboutTitle">ℹ️ About Voxa</div>
+      <button class="voxa-about-close" onclick="closeVoxaAbout()" aria-label="Close About">×</button>
+    </div>
+    <div class="voxa-about-sub">A fast and realtime chat project created by Devesh Goswami.</div>
+    <div class="voxa-about-section"><h4>💬 About Voxa</h4><p>Voxa is a chat application designed to help people connect and communicate through realtime messaging.</p></div>
+    <div class="voxa-about-section"><h4>👨‍💻 About the Creator</h4><p>Hi, I’m Devesh Goswami, a student, the creator and developer of Voxa. I’m building Voxa as a simple and friendly place for online conversations.</p></div>
+    <div class="voxa-about-section"><h4>✨ Highlights</h4><ul><li>Global public chat</li><li>Direct messaging features</li><li>Profile and theme settings</li><li>Message interaction tools</li></ul></div>
+    <div class="voxa-about-section"><h4>🙏 Credits</h4><p>Thanks to the open-source tools, browser technologies and resources that support this project. Third-party credits can be expanded here whenever needed.</p></div>
+    <div class="voxa-about-section"><h4>🔖 Version</h4><span class="voxa-about-version">Version 14.7.3</span></div>
+    <div class="voxa-about-section"><h4>©️ Copyright</h4><p>Made with care by Devesh Goswami.</p></div>
+  </div>
+</div>
+
+<script>
+
+function openVoxaAbout(){
+  const menu=document.getElementById('menu');
+  if(menu)menu.style.display='none';
+  const modal=document.getElementById('voxaAboutModal');
+  if(modal)modal.style.display='flex';
+}
+function closeVoxaAbout(){
+  const modal=document.getElementById('voxaAboutModal');
+  if(modal)modal.style.display='none';
+}
+
 </script>
 </body>
 </html>
